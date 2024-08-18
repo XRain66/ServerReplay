@@ -192,10 +192,20 @@ abstract class ReplayRecorder(
                 this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(buf.readableBytes())
             }
 
-            val friendly = FriendlyByteBuf(buf.slice())
+            var friendly = FriendlyByteBuf(buf.slice())
             val id = friendly.readVarInt()
+
+            if (outgoing is ClientboundCustomPayloadPacket) {
+                val payload = outgoing.payload
+                if (payload is RecordablePayload) {
+                    friendly.release()
+                    friendly = FriendlyByteBuf(Unpooled.buffer())
+                    payload.write(friendly)
+                }
+            }
             val bytes = ByteArray(friendly.readableBytes())
             friendly.readBytes(bytes)
+            friendly.release()
 
             val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
             val registry = PacketTypeRegistry.get(version, this.protocolAsState())
