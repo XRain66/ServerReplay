@@ -17,6 +17,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.encodeToStream
 import me.senseiwells.replay.ServerReplay
+import me.senseiwells.replay.api.network.RecordablePayload
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.player.PlayerRecorder
@@ -475,6 +476,12 @@ abstract class ReplayRecorder(
      * @return Whether this recorded should record it.
      */
     protected open fun canRecordPacket(packet: MinecraftPacket<*>): Boolean {
+        if (packet is ClientboundCustomPayloadPacket) {
+            val payload = packet.payload
+            if (payload is RecordablePayload && !payload.shouldRecord()) {
+                return false
+            }
+        }
         return true
     }
 
