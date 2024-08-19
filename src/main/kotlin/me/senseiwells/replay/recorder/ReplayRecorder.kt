@@ -130,7 +130,7 @@ abstract class ReplayRecorder(
     init {
         this.executor = Executors.newSingleThreadExecutor()
 
-        this.date = DateUtils.getFormattedDate()
+        this.date = DateTimeUtils.getFormattedDate()
         this.location = FileUtils.findNextAvailable(this.recordings.resolve(this.date))
         this.replay = SizedZipReplayFile(out = this.location.toFile())
 
@@ -174,31 +174,10 @@ abstract class ReplayRecorder(
             return
         }
 
-        val buf = FriendlyByteBuf(Unpooled.buffer())
-        val saved = try {
-            val id = this.protocol.getPacketId(PacketFlow.CLIENTBOUND, outgoing)
-            if (id == null) {
-                ServerReplay.logger.error("Tried recording packet for wrong phase: ${outgoing::class.java}, ignoring...")
-                return
-            }
-
-            val state = this.protocolAsState()
-
-            outgoing.write(buf)
-
-            if (ServerReplay.config.debug) {
-                val type = outgoing.getDebugName()
-                this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(buf.readableBytes())
-            }
-
-            val wrapped = ReplayUnpooled.wrappedBuffer(buf.array(), buf.arrayOffset(), buf.readableBytes())
-
-            val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
-            val registry = PacketTypeRegistry.get(version, state)
-
-            Packet(registry, id, wrapped)
-        } finally {
-            buf.release()
+        val saved = this.encodePacket(outgoing) ?: return
+        if (ServerReplay.config.debug) {
+            val type = outgoing.getDebugName()
+            this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(saved.buf.readableBytes())
         }
 
         val timestamp = this.getTimestamp()
@@ -481,7 +460,7 @@ abstract class ReplayRecorder(
      *
      * @param block The function to call while ignoring packets.
      */
-    protected fun ignore(block: () -> Unit) {
+    fun ignore(block: () -> Unit) {
         val previous = this.ignore
         try {
             this.ignore = true
@@ -519,6 +498,30 @@ abstract class ReplayRecorder(
         this.record(ClientboundGameProfilePacket(this.profile))
 
         this.protocol = ConnectionProtocol.PLAY
+    }
+
+    private fun encodePacket(outgoing: MinecraftPacket<*>): Packet? {
+        val buf = FriendlyByteBuf(Unpooled.buffer())
+        try {
+            val id = this.protocol.getPacketId(PacketFlow.CLIENTBOUND, outgoing)
+            if (id == null) {
+                ServerReplay.logger.error("Tried recording packet for wrong phase: ${outgoing::class.java}, ignoring...")
+                return null
+            }
+
+            val state = this.protocolAsState()
+
+            outgoing.write(buf)
+
+            val wrapped = ReplayUnpooled.wrappedBuffer(buf.array(), buf.arrayOffset(), buf.readableBytes())
+
+            val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
+            val registry = PacketTypeRegistry.get(version, state)
+
+            return Packet(registry, id, wrapped)
+        } finally {
+            buf.release()
+        }
     }
 
     private fun prePacket(packet: MinecraftPacket<*>): Boolean {

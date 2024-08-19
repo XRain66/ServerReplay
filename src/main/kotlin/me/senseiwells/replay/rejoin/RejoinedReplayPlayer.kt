@@ -1,9 +1,6 @@
 package me.senseiwells.replay.rejoin
 
-import me.senseiwells.replay.api.ServerReplayPluginManager
-import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
-import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.recorder.ReplayRecorder
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.minecraft.core.RegistryAccess
@@ -53,13 +50,6 @@ class RejoinedReplayPlayer private constructor(
             rejoined.load(player.saveWithoutId(CompoundTag()))
             place(rejoined, RejoinGamePacketListener(rejoined, connection), player, rejoined::sendResourcePacks) {
                 recorder.shouldHidePlayerFromTabList(it)
-            }
-
-            for (plugin in ServerReplayPluginManager.plugins) {
-                when (recorder) {
-                    is PlayerRecorder -> plugin.onPlayerReplayStart(recorder)
-                    is ChunkRecorder -> plugin.onChunkReplayStart(recorder)
-                }
             }
         }
 
