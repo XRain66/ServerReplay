@@ -45,8 +45,6 @@ import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.GameType
 import net.minecraft.world.level.biome.BiomeManager
-import net.minecraft.world.phys.Vec3
-import net.minecraft.world.scores.DisplaySlot
 import net.minecraft.world.scores.Objective
 import net.minecraft.world.scores.criteria.ObjectiveCriteria
 import java.io.IOException
@@ -389,8 +387,6 @@ class ReplayViewer(
                     ObjectiveCriteria.DUMMY,
                     Component.empty(),
                     ObjectiveCriteria.RenderType.INTEGER,
-                    false,
-                    null
                 )
                 this.send(ClientboundSetObjectivePacket(dummy, ClientboundSetObjectivePacket.METHOD_REMOVE))
             }

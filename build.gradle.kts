@@ -58,7 +58,7 @@ dependencies {
     implementation("de.maxhenkel.voicechat:voicechat-api:${voicechatApiVersion}")
 
     modCompileOnly("maven.modrinth:vmp-fabric:${vmpVersion}")
-    modCompileOnly("com.github.sakura-ryoko:syncmatica:${syncmaticaVersion}")
+    modCompileOnly("maven.modrinth:syncmatica:${syncmaticaVersion}")
 
     // I've had some issues with ReplayStudio and slf4j (in dev env)
     // Simplest workaround that I've found is just to unzip the

@@ -449,12 +449,6 @@ abstract class ReplayRecorder(
      * @return Whether this recorded should record it.
      */
     protected open fun canRecordPacket(packet: MinecraftPacket<*>): Boolean {
-        if (packet is ClientboundCustomPayloadPacket) {
-            val payload = packet.payload
-            if (payload is RecordablePayload && !payload.shouldRecord()) {
-                return false
-            }
-        }
         return true
     }
 
