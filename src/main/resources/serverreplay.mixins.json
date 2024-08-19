@@ -16,6 +16,7 @@
     "common.ChunkMapMixin",
     "common.MinecraftServerMixin",
     "common.ServerLevelMixin",
+    "compat.carpet.ChunkMapMixin",
     "compat.carpet.EntityPlayerMPFakeMixin",
     "compat.carpet.NetHandlerPlayServerFakeMixin",
     "compat.syncmatica.SyncmaticaPacketPayloadMixin",
