@@ -128,8 +128,11 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Updated to 1.21
-            - Removed voicechat support (voicechat is yet to support replay)
+            - Re-implement voicechat support (for 1.21)
+            - Fixed an issue with Carpet bots not recording entities properly
+            - Fixed an issue with `/replay view`
+            - Fixed an incompatibility with Syncmatica
+            - Added the ability to change the player's recording directory name
             """.trimIndent()
         )
         type = STABLE
