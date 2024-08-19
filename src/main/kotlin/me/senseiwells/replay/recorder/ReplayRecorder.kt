@@ -174,7 +174,7 @@ abstract class ReplayRecorder(
             return
         }
 
-        val saved = this.encodePacket(outgoing)
+        val saved = this.encodePacket(outgoing) ?: return
         if (ServerReplay.config.debug) {
             val type = outgoing.getDebugName()
             this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(saved.buf.readableBytes())
@@ -500,13 +500,13 @@ abstract class ReplayRecorder(
         this.protocol = ConnectionProtocol.PLAY
     }
 
-    private fun encodePacket(outgoing: MinecraftPacket<*>): Packet {
+    private fun encodePacket(outgoing: MinecraftPacket<*>): Packet? {
         val buf = FriendlyByteBuf(Unpooled.buffer())
         try {
             val id = this.protocol.getPacketId(PacketFlow.CLIENTBOUND, outgoing)
             if (id == null) {
                 ServerReplay.logger.error("Tried recording packet for wrong phase: ${outgoing::class.java}, ignoring...")
-                return
+                return null
             }
 
             val state = this.protocolAsState()

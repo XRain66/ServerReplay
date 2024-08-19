@@ -1,10 +1,7 @@
 package me.senseiwells.replay.rejoin
 
-import me.senseiwells.replay.api.ServerReplayPluginManager
-import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
 import me.senseiwells.replay.recorder.ReplayRecorder
-import me.senseiwells.replay.viewer.ReplayViewerUtils
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.minecraft.nbt.CompoundTag
 import net.minecraft.network.protocol.game.*
@@ -14,7 +11,6 @@ import net.minecraft.tags.TagNetworkSerialization
 import net.minecraft.world.level.GameRules
 import net.minecraft.world.level.biome.BiomeManager
 import net.minecraft.world.scores.Objective
-import java.util.*
 
 class RejoinedReplayPlayer private constructor(
     val original: ServerPlayer,

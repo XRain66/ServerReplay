@@ -31,6 +31,8 @@ import me.senseiwells.replay.viewer.packhost.ReplayPack
 import net.minecraft.ChatFormatting
 import net.minecraft.SharedConstants
 import net.minecraft.network.FriendlyByteBuf
+import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.TextComponent
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.game.ClientboundGameEventPacket.CHANGE_GAME_MODE
@@ -77,7 +79,7 @@ class ReplayViewer(
     private val players = Collections.synchronizedList(ArrayList<UUID>())
     private val objectives = Collections.synchronizedCollection(ArrayList<String>())
 
-    private val bossbar = ServerBossEvent(Component.empty(), BossBarColor.BLUE, BossBarOverlay.PROGRESS)
+    private val bossbar = ServerBossEvent(TextComponent.EMPTY, BossBarColor.BLUE, BossBarOverlay.PROGRESS)
 
     private var previousPack: ClientboundResourcePackPacket? = null
 
@@ -270,12 +272,12 @@ class ReplayViewer(
     }
 
     private fun updateProgress(progress: Duration) {
-        val title = Component.empty()
-            .append(Component.literal(this.location.nameWithoutExtension).withStyle(ChatFormatting.GREEN))
+        val title = TextComponent("")
+            .append(TextComponent(this.location.nameWithoutExtension).withStyle(ChatFormatting.GREEN))
             .append(" ")
-            .append(Component.literal(progress.formatHHMMSS()).withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
+            .append(TextComponent(progress.formatHHMMSS()).withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
         if (this.paused) {
-            title.append(Component.literal(" (PAUSED)").withStyle(ChatFormatting.DARK_AQUA))
+            title.append(TextComponent(" (PAUSED)").withStyle(ChatFormatting.DARK_AQUA))
         }
         this.bossbar.name = title
 
@@ -392,7 +394,7 @@ class ReplayViewer(
                     null,
                     objective,
                     ObjectiveCriteria.DUMMY,
-                    Component.empty(),
+                    TextComponent.EMPTY,
                     ObjectiveCriteria.RenderType.INTEGER,
                 )
                 this.send(ClientboundSetObjectivePacket(dummy, ClientboundSetObjectivePacket.METHOD_REMOVE))
