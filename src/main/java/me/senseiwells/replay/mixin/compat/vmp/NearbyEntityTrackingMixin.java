@@ -22,8 +22,7 @@ public class NearbyEntityTrackingMixin {
         method = "tick",
         at = @At(
             value = "INVOKE_ASSIGN",
-            target = "Lcom/ishland/vmp/common/playerwatching/ServerPlayerEntityExtension;vmpTracking$isPositionUpdated()Z",
-            shift = At.Shift.AFTER
+            target = "Lcom/ishland/vmp/common/playerwatching/ServerPlayerEntityExtension;vmpTracking$updatePosition()V"
         ),
         remap = false
     )
