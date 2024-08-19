@@ -125,8 +125,10 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Backported some fixes from 1.20.6
-            - This is the final version for 1.20.4
+            - Fixed an issue with Carpet bots not recording entities properly
+            - Fixed an issue with `/replay view`
+            - Fixed an incompatibility with Syncmatica
+            - Added the ability to change the player's recording directory name
             """.trimIndent()
         )
         type = STABLE

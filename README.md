@@ -152,6 +152,7 @@ You will only have access to a limited set of commands when viewing replays, the
 - `/replay view speed <multiplier>` Sets the playback speed of the current replay.
 - `/replay view restart` Restarts the playback of the current replay.
 - `/replay view close` Closes the current replay and brings you back to the server.
+- `/replay view progress <hide|show>` Hides or shows the progress bossbar.
 
 If you disconnect while watching a replay, you will be brought back to the server when you login.
 
