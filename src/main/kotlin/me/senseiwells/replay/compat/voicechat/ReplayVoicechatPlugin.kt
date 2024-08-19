@@ -18,16 +18,16 @@ import me.senseiwells.replay.chunk.ChunkRecorders
 import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
-import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
 import net.minecraft.Util
 import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.common.ClientCommonPacketListener
+import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket
+import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import java.util.*
 
-@Suppress("unused")
 object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
     /**
      * Mod id of the replay voicechat mod, see [here](https://github.com/henkelmax/replay-voice-chat/blob/master/src/main/java/de/maxhenkel/replayvoicechat/ReplayVoicechat.java).
@@ -39,9 +39,15 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
      */
     const val VERSION = 1
 
-    private val LOCATIONAL_ID = ResourceLocation(MOD_ID, "locational_sound")
-    private val ENTITY_ID = ResourceLocation(MOD_ID, "entity_sound")
-    private val STATIC_ID = ResourceLocation(MOD_ID, "static_sound")
+    private val LOCATIONAL_TYPE = CustomPacketPayload.Type<VoicechatPayload>(
+        ResourceLocation(MOD_ID, "locational_sound")
+    )
+    private val ENTITY_TYPE = CustomPacketPayload.Type<VoicechatPayload>(
+        ResourceLocation(MOD_ID, "entity_sound")
+    )
+    private val STATIC_TYPE = CustomPacketPayload.Type<VoicechatPayload>(
+        ResourceLocation(MOD_ID, "static_sound")
+    )
 
     // We don't want to constantly decode sound packets, when broadcasted to multiple players
     private val cache = WeakHashMap<SoundPacket, Packet<ClientCommonPacketListener>>()
@@ -82,7 +88,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
         val packet = event.packet
         this.recordForReceiver(event) {
             this.cache.getOrPut(packet) {
-                this.createPacket(LOCATIONAL_ID, packet.sender, packet.opusEncodedData, event.voicechat.audioConverter) {
+                this.createPacket(LOCATIONAL_TYPE, packet.sender, packet.opusEncodedData, event.voicechat.audioConverter) {
                     writeDouble(packet.position.x)
                     writeDouble(packet.position.y)
                     writeDouble(packet.position.z)
@@ -100,7 +106,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
         val packet = event.packet
         this.recordForReceiver(event) {
             this.cache.getOrPut(packet) {
-                this.createPacket(ENTITY_ID, packet.sender, packet.opusEncodedData, event.voicechat.audioConverter) {
+                this.createPacket(ENTITY_TYPE, packet.sender, packet.opusEncodedData, event.voicechat.audioConverter) {
                     writeBoolean(packet.isWhispering)
                     writeFloat(packet.distance)
                 }
@@ -116,7 +122,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
         val packet = event.packet
         this.recordForReceiver(event) {
             this.cache.getOrPut(packet) {
-                this.createPacket(STATIC_ID, packet.sender, packet.opusEncodedData, event.voicechat.audioConverter)
+                this.createPacket(STATIC_TYPE, packet.sender, packet.opusEncodedData, event.voicechat.audioConverter)
             }
         }
     }
@@ -134,7 +140,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
 
         // We may need this for both the player and chunks
         val lazyEntityPacket = lazy {
-            this.createPacket(ENTITY_ID, player.uuid, event.packet.opusEncodedData, converter) {
+            this.createPacket(ENTITY_TYPE, player.uuid, event.packet.opusEncodedData, converter) {
                 writeBoolean(event.packet.isWhispering)
                 writeFloat(event.voicechat.voiceChatDistance.toFloat())
             }
@@ -144,7 +150,7 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
             val playerRecorder = PlayerRecorders.get(player)
             if (playerRecorder != null) {
                 val packet = if (!inGroup) {
-                    this.createPacket(STATIC_ID, player.uuid, event.packet.opusEncodedData, converter)
+                    this.createPacket(STATIC_TYPE, player.uuid, event.packet.opusEncodedData, converter)
                 } else {
                     lazyEntityPacket.value
                 }
@@ -199,22 +205,22 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
     }
 
     private fun createPacket(
-        id: ResourceLocation,
+        type: CustomPacketPayload.Type<*>,
         sender: UUID,
         encoded: ByteArray,
         converter: AudioConverter,
         additional: FriendlyByteBuf.() -> Unit = { }
     ): Packet<ClientCommonPacketListener> {
-        val buf = PacketByteBufs.create()
-        buf.writeShort(VERSION)
-        buf.writeUUID(sender)
         // We are forced to decode on the server-side since replay-voice-chat
         // reads the raw packet data when it reads the replay.
-        buf.writeByteArray(converter.shortsToBytes(this.decoder.decode(encoded)))
-        additional(buf)
-        // TODO:
-        throw UnsupportedOperationException()
-//        return ServerPlayNetworking.createS2CPacket(id, buf)
+        val raw = converter.shortsToBytes(this.decoder.decode(encoded))
+        val payload = VoicechatPayload.of(type) { buf ->
+            buf.writeShort(VERSION)
+            buf.writeUUID(sender)
+            buf.writeByteArray(raw)
+            additional(buf)
+        }
+        return ClientboundCustomPayloadPacket(payload)
     }
 
     private fun <T: SoundPacket> recordForReceiver(
@@ -270,10 +276,6 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
     }
 
     private fun de.maxhenkel.voicechat.net.Packet<*>.toClientboundPacket(): Packet<ClientCommonPacketListener> {
-        val buf = PacketByteBufs.create()
-        this.toBytes(buf)
-        // TODO:
-        throw UnsupportedOperationException()
-//        return ServerPlayNetworking.createS2CPacket(this.identifier, buf)
+        return ClientboundCustomPayloadPacket(this)
     }
 }

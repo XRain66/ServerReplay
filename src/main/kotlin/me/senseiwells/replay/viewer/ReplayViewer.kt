@@ -17,6 +17,7 @@ import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
 import me.senseiwells.replay.mixin.viewer.EntityInvoker
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
+import me.senseiwells.replay.util.DateTimeUtils.formatHHMMSS
 import me.senseiwells.replay.viewer.ReplayViewerUtils.getViewingReplay
 import me.senseiwells.replay.viewer.ReplayViewerUtils.sendReplayPacket
 import me.senseiwells.replay.viewer.ReplayViewerUtils.startViewingReplay
@@ -25,6 +26,7 @@ import me.senseiwells.replay.viewer.ReplayViewerUtils.toClientboundConfiguration
 import me.senseiwells.replay.viewer.ReplayViewerUtils.toClientboundPlayPacket
 import me.senseiwells.replay.viewer.packhost.PackHost
 import me.senseiwells.replay.viewer.packhost.ReplayPack
+import net.minecraft.ChatFormatting
 import net.minecraft.SharedConstants
 import net.minecraft.core.UUIDUtil
 import net.minecraft.network.RegistryFriendlyByteBuf
@@ -35,8 +37,11 @@ import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.game.ClientboundGameEventPacket.CHANGE_GAME_MODE
 import net.minecraft.server.MinecraftServer
+import net.minecraft.server.level.ServerBossEvent
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.server.network.ServerGamePacketListenerImpl
+import net.minecraft.world.BossEvent.BossBarColor
+import net.minecraft.world.BossEvent.BossBarOverlay
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.GameType
@@ -52,6 +57,9 @@ import kotlin.collections.ArrayList
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.deleteRecursively
 import kotlin.io.path.name
+import kotlin.io.path.nameWithoutExtension
+import kotlin.time.Duration
+import kotlin.time.Duration.Companion.milliseconds
 
 class ReplayViewer(
     private val location: Path,
@@ -73,9 +81,14 @@ class ReplayViewer(
     private val players = Collections.synchronizedList(ArrayList<UUID>())
     private val objectives = Collections.synchronizedCollection(ArrayList<String>())
 
+    private val bossbar = ServerBossEvent(Component.empty(), BossBarColor.BLUE, BossBarOverlay.PROGRESS)
+
     private val previousPacks = ArrayList<ClientboundResourcePackPushPacket>()
 
     private val gameProtocol = GameProtocols.CLIENTBOUND.bind(RegistryFriendlyByteBuf.decorator(this.server.registryAccess()))
+
+    private val duration = this.replay.metaData.duration.milliseconds
+    private var progress = 0.milliseconds
 
     val server: MinecraftServer
         get() = this.player.server
@@ -117,6 +130,11 @@ class ReplayViewer(
         this.removeReplayState()
         this.coroutineScope.coroutineContext.cancelChildren()
         this.teleported = false
+
+        if (this.bossbar.isVisible) {
+            this.send(ClientboundBossEventPacket.createAddPacket(this.bossbar))
+        }
+
         this.coroutineScope.launch {
             hostResourcePacks()
             streamReplay { this.isActive }
@@ -153,6 +171,25 @@ class ReplayViewer(
     fun setPaused(paused: Boolean) {
         this.paused = paused
         this.sendTickingState()
+        this.updateProgress(this.progress)
+    }
+
+    fun showProgress(): Boolean {
+        if (!this.bossbar.isVisible) {
+            this.bossbar.isVisible = true
+            this.send(ClientboundBossEventPacket.createAddPacket(this.bossbar))
+            return true
+        }
+        return false
+    }
+
+    fun hideProgress(): Boolean {
+        if (this.bossbar.isVisible) {
+            this.bossbar.isVisible = false
+            this.send(ClientboundBossEventPacket.createRemovePacket(this.bossbar.id))
+            return true
+        }
+        return false
     }
 
     fun onServerboundPacket(packet: Packet<*>) {
@@ -209,6 +246,7 @@ class ReplayViewer(
                 State.CONFIGURATION -> this.sendConfigurationPacket(data, active)
                 State.PLAY -> {
                     this.sendPlayPacket(data, active)
+                    this.updateProgress(data.time.milliseconds)
                     lastTime = data.time
                 }
                 else -> { }
@@ -250,23 +288,31 @@ class ReplayViewer(
         }
     }
 
+    private fun updateProgress(progress: Duration) {
+        val title = Component.empty()
+            .append(Component.literal(this.location.nameWithoutExtension).withStyle(ChatFormatting.GREEN))
+            .append(" ")
+            .append(Component.literal(progress.formatHHMMSS()).withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
+        if (this.paused) {
+            title.append(Component.literal(" (PAUSED)").withStyle(ChatFormatting.DARK_AQUA))
+        }
+        this.bossbar.name = title
+
+        this.progress = progress
+        this.bossbar.progress = progress.div(this.duration).toFloat()
+
+        if (this.bossbar.isVisible) {
+            this.send(ClientboundBossEventPacket.createUpdateProgressPacket(this.bossbar))
+            this.send(ClientboundBossEventPacket.createUpdateNamePacket(this.bossbar))
+        }
+    }
+
     private fun sendTickingState() {
         this.send(this.getTickingStatePacket())
-        this.sendAbilities()
     }
 
     private fun getTickingStatePacket(): ClientboundTickingStatePacket {
         return ClientboundTickingStatePacket(this.tickSpeed * this.speedMultiplier, this.paused || this.tickFrozen)
-    }
-
-    private fun sendAbilities() {
-        // val abilities = Abilities()
-        // abilities.flying = true
-        // abilities.mayfly = true
-        // abilities.invulnerable = true
-        // abilities.flyingSpeed /= this.speedMultiplier
-        // abilities.walkingSpeed /= this.speedMultiplier
-        // this.send(ClientboundPlayerAbilitiesPacket(abilities))
     }
 
     private fun setForReplayView() {
@@ -372,6 +418,10 @@ class ReplayViewer(
         }
 
         this.send(ClientboundResourcePackPopPacket(Optional.empty()))
+
+        if (this.bossbar.isVisible) {
+            this.send(ClientboundBossEventPacket.createRemovePacket(this.bossbar.id))
+        }
     }
 
     private fun shouldSendPacket(packet: Packet<*>): Boolean {

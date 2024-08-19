@@ -17,8 +17,10 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.encodeToStream
 import me.senseiwells.replay.ServerReplay
+import me.senseiwells.replay.api.network.RecordablePayload
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.mixin.network.IdDispatchCodecAccessor
 import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.util.*
 import net.minecraft.ChatFormatting
@@ -32,8 +34,10 @@ import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.network.chat.HoverEvent
 import net.minecraft.network.codec.StreamCodec
+import net.minecraft.network.protocol.PacketType
 import net.minecraft.network.protocol.common.ClientboundCustomPayloadPacket
 import net.minecraft.network.protocol.common.ClientboundResourcePackPushPacket
+import net.minecraft.network.protocol.common.CommonPacketTypes
 import net.minecraft.network.protocol.configuration.ConfigurationProtocols
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundBundlePacket
@@ -137,7 +141,7 @@ abstract class ReplayRecorder(
     init {
         this.executor = Executors.newSingleThreadExecutor()
 
-        this.date = DateUtils.getFormattedDate()
+        this.date = DateTimeUtils.getFormattedDate()
         this.location = FileUtils.findNextAvailable(this.recordings.resolve(this.date))
         this.replay = SizedZipReplayFile(out = this.location.toFile())
 
@@ -181,27 +185,10 @@ abstract class ReplayRecorder(
             return
         }
 
-        val buf = Unpooled.buffer()
-        val saved = try {
-            @Suppress("UNCHECKED_CAST")
-            (this.protocol.codec() as StreamCodec<ByteBuf, MinecraftPacket<*>>).encode(buf, outgoing)
-
-            if (ServerReplay.config.debug) {
-                val type = outgoing.getDebugName()
-                this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(buf.readableBytes())
-            }
-
-            val friendly = FriendlyByteBuf(buf.slice())
-            val id = friendly.readVarInt()
-            val bytes = ByteArray(friendly.readableBytes())
-            friendly.readBytes(bytes)
-
-            val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
-            val registry = PacketTypeRegistry.get(version, this.protocolAsState())
-
-            Packet(registry, id, ReplayUnpooled.wrappedBuffer(bytes))
-        } finally {
-            buf.release()
+        val saved = this.encodePacket(outgoing)
+        if (ServerReplay.config.debug) {
+            val type = outgoing.getDebugName()
+            this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(saved.buf.readableBytes())
         }
 
         val timestamp = this.getTimestamp()
@@ -475,6 +462,12 @@ abstract class ReplayRecorder(
      * @return Whether this recorded should record it.
      */
     protected open fun canRecordPacket(packet: MinecraftPacket<*>): Boolean {
+        if (packet is ClientboundCustomPayloadPacket) {
+            val payload = packet.payload
+            if (payload is RecordablePayload && !payload.shouldRecord()) {
+                return false
+            }
+        }
         return true
     }
 
@@ -532,6 +525,42 @@ abstract class ReplayRecorder(
     @Internal
     fun afterConfigure() {
         this.protocol = GameProtocols.CLIENTBOUND.bind(RegistryFriendlyByteBuf.decorator(this.server.registryAccess()))
+    }
+
+    private fun encodePacket(outgoing: MinecraftPacket<*>): Packet {
+        val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
+        val registry = PacketTypeRegistry.get(version, this.protocolAsState())
+
+        @Suppress("UNCHECKED_CAST")
+        val codec = (this.protocol.codec() as StreamCodec<ByteBuf, MinecraftPacket<*>>)
+
+        if (outgoing is ClientboundCustomPayloadPacket) {
+            val payload = outgoing.payload
+            if (payload is RecordablePayload) {
+                @Suppress("UNCHECKED_CAST")
+                codec as IdDispatchCodecAccessor<PacketType<*>>
+
+                val id = codec.typeToIdMap.getInt(CommonPacketTypes.CLIENTBOUND_CUSTOM_PAYLOAD)
+                val friendly = FriendlyByteBuf(Unpooled.buffer())
+                try {
+                    friendly.writeResourceLocation(payload.type().id)
+                    payload.record(friendly)
+                    return Packet(registry, id, ReplayUnpooled.wrappedBuffer(friendly.toByteArray()))
+                } finally {
+                    friendly.release()
+                }
+            }
+        }
+
+        val buf = Unpooled.buffer()
+        try {
+            codec.encode(buf, outgoing)
+            val friendly = FriendlyByteBuf(buf.slice())
+            val id = friendly.readVarInt()
+            return Packet(registry, id, ReplayUnpooled.wrappedBuffer(friendly.toByteArray()))
+        } finally {
+            buf.release()
+        }
     }
 
     private fun prePacket(packet: MinecraftPacket<*>): Boolean {

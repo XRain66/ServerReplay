@@ -45,10 +45,11 @@ object PlayerRecorders {
             throw IllegalArgumentException("Player already has a recorder")
         }
 
+        ServerReplay.config.playerRecordingName
         val recorder = PlayerRecorder(
             server,
             profile,
-            ServerReplay.config.playerRecordingPath.resolve(profile.id.toString())
+            ServerReplay.config.getPlayerRecordingLocation(profile)
         )
         this.players[profile.id] = recorder
         RecorderRecoverer.add(recorder)

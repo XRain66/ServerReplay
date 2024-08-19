@@ -12,7 +12,7 @@ import java.nio.file.Path
 import kotlin.io.path.pathString
 
 object PathSerializer: KSerializer<Path> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("PathSerializer", PrimitiveKind.STRING)
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("Path", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: Path) {
         encoder.encodeString(value.pathString)
