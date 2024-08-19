@@ -21,11 +21,9 @@ import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.commands.arguments.DimensionArgument
 import net.minecraft.commands.arguments.EntityArgument
-import net.minecraft.commands.arguments.UuidArgument
 import net.minecraft.network.chat.TextComponent
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
-import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.*
@@ -135,7 +133,7 @@ object ReplayCommand {
             ).then(
                 Commands.literal("view").then(
                     Commands.literal("players").then(
-                        Commands.argument("uuid", UuidArgument.uuid()).suggests(this.suggestSavedPlayerUUID()).then(
+                        Commands.argument("name", StringArgumentType.string()).suggests(this.suggestSavedPlayerName()).then(
                             Commands.argument("replay", StringArgumentType.string()).suggests(this.suggestSavedPlayerReplayName()).executes {
                                 this.viewReplay(it, true)
                             }
@@ -358,7 +356,7 @@ object ReplayCommand {
     ): Int {
         val player = context.source.playerOrException
         val path = if (isPlayer) {
-            val uuid = UuidArgument.getUuid(context, "uuid")
+            val uuid = StringArgumentType.getString(context, "name")
             ServerReplay.config.playerRecordingPath.resolve(uuid.toString())
         } else {
             val area = StringArgumentType.getString(context, "area")
@@ -446,19 +444,19 @@ object ReplayCommand {
         }
     }
 
-    private fun suggestSavedPlayerUUID(): SuggestionProvider<CommandSourceStack> {
+    private fun suggestSavedPlayerName(): SuggestionProvider<CommandSourceStack> {
         return SuggestionProvider<CommandSourceStack> { _, b ->
             val names = ServerReplay.config.playerRecordingPath.streamDirectoryEntriesOrEmpty()
-                .filter { it.isDirectory() && kotlin.runCatching { UUID.fromString(it.name) }.isSuccess }
-                .map { it.name }
+                .filter { it.isDirectory() }
+                .map { "\"${it.name}\"" }
             SharedSuggestionProvider.suggest(names, b)
         }
     }
 
     private fun suggestSavedPlayerReplayName(): SuggestionProvider<CommandSourceStack> {
         return SuggestionProvider<CommandSourceStack> { c, b ->
-            val uuid = UuidArgument.getUuid(c, "uuid")
-            val playerPath = ServerReplay.config.playerRecordingPath.resolve(uuid.toString())
+            val name = StringArgumentType.getString(c, "name")
+            val playerPath = ServerReplay.config.playerRecordingPath.resolve(name)
             val names = playerPath.streamDirectoryEntriesOrEmpty()
                 .filter { !it.isDirectory() && it.extension == "mcpr" }
                 .map { "\"${it.nameWithoutExtension}\"" }
