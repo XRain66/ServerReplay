@@ -1,5 +1,6 @@
 package me.senseiwells.replay.config
 
+import com.mojang.authlib.GameProfile
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.EncodeDefault.Mode
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -45,6 +46,8 @@ data class ReplayConfig(
     @SerialName("player_recording_path")
     @Serializable(with = PathSerializer::class)
     var playerRecordingPath: Path = recordings.resolve("players"),
+    @SerialName("player_recording_name")
+    var playerRecordingName: String = "{uuid}",
     @SerialName("max_file_size")
     var maxFileSize: FileSize = FileSize("0GB"),
     @SerialName("restart_after_max_file_size")
@@ -93,6 +96,13 @@ data class ReplayConfig(
     @SerialName("chunks")
     private val chunks: List<ChunkAreaConfig> = listOf(),
 ) {
+    fun getPlayerRecordingLocation(profile: GameProfile): Path {
+        val path = this.playerRecordingName
+            .replace("{uuid}", profile.id.toString())
+            .replace("{username}", profile.name)
+        return this.playerRecordingPath.resolve(path)
+    }
+
     fun shouldRecordPlayer(context: ReplayPlayerContext): Boolean {
         return this.playerPredicate.shouldRecord(context)
     }

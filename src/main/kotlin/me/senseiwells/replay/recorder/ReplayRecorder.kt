@@ -200,7 +200,7 @@ abstract class ReplayRecorder(
                 if (payload is RecordablePayload) {
                     friendly.release()
                     friendly = FriendlyByteBuf(Unpooled.buffer())
-                    payload.write(friendly)
+                    payload.record(friendly)
                 }
             }
             val bytes = ByteArray(friendly.readableBytes())

@@ -11,7 +11,7 @@ import net.minecraft.ResourceLocationException
 import net.minecraft.resources.ResourceLocation
 
 object ResourceLocationSerializer: KSerializer<ResourceLocation> {
-    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("dimension", PrimitiveKind.STRING)
+    override val descriptor: SerialDescriptor = PrimitiveSerialDescriptor("ResourceLocation", PrimitiveKind.STRING)
 
     override fun serialize(encoder: Encoder, value: ResourceLocation) {
         encoder.encodeString(value.toString())
@@ -22,7 +22,7 @@ object ResourceLocationSerializer: KSerializer<ResourceLocation> {
         try {
             return ResourceLocation.parse(location)
         } catch (e: ResourceLocationException) {
-            throw SerializationException("Invalid dimension")
+            throw SerializationException("Invalid ResourceLocation")
         }
     }
 }

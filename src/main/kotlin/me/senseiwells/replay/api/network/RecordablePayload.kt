@@ -21,5 +21,5 @@ interface RecordablePayload {
      *
      * @param buf The byte buf to write to.
      */
-    fun write(buf: FriendlyByteBuf)
+    fun record(buf: FriendlyByteBuf)
 }

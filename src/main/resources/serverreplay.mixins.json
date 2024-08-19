@@ -27,7 +27,6 @@
     "player.ServerLoginPacketListenerImplMixin",
     "player.TrackedEntityMixin",
     "rejoin.ChunkMapAccessor",
-    "rejoin.ConnectionAccessor",
     "rejoin.ServerCommonPacketListenerImplMixin",
     "rejoin.ServerConfigurationPacketListenerImplAccessor",
     "rejoin.ServerConfigurationPacketListenerImplMixin",

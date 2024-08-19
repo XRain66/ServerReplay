@@ -12,7 +12,7 @@ class VoicechatPayload private constructor(
         return true
     }
 
-    override fun write(buf: FriendlyByteBuf) {
+    override fun record(buf: FriendlyByteBuf) {
         this.writer.invoke(buf)
     }
 
