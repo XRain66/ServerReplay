@@ -21,7 +21,7 @@ class ReplayMixinConfig: IMixinConfigPlugin {
 
     override fun shouldApplyMixin(targetClassName: String, mixinClassName: String): Boolean {
         if (mixinClassName.startsWith(MIXIN_COMPAT)) {
-            val modId = mixinClassName.removePrefix(MIXIN_COMPAT)
+            val modId = mixinClassName.removePrefix(MIXIN_COMPAT).substringBefore('.')
             val isModLoaded = FabricLoader.getInstance().isModLoaded(modId)
             if (!isModLoaded) {
                 ServerReplay.logger.debug("Not applying compat mixin for mod $modId, mod was not loaded")
