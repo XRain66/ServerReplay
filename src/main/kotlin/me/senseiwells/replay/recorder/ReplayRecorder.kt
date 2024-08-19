@@ -141,7 +141,7 @@ abstract class ReplayRecorder(
     init {
         this.executor = Executors.newSingleThreadExecutor()
 
-        this.date = DateUtils.getFormattedDate()
+        this.date = DateTimeUtils.getFormattedDate()
         this.location = FileUtils.findNextAvailable(this.recordings.resolve(this.date))
         this.replay = SizedZipReplayFile(out = this.location.toFile())
 
