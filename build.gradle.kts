@@ -35,7 +35,6 @@ val voicechatVersion: String by project
 val voicechatApiVersion: String by project
 val vmpVersion: String by project
 val permissionsVersion: String by project
-val syncmaticaVersion: String by project
 
 val releaseVersion = "${modVersion}+mc${mcVersion}"
 version = releaseVersion
@@ -58,7 +57,6 @@ dependencies {
     implementation("de.maxhenkel.voicechat:voicechat-api:${voicechatApiVersion}")
 
     modCompileOnly("maven.modrinth:vmp-fabric:${vmpVersion}")
-    modCompileOnly("maven.modrinth:syncmatica:${syncmaticaVersion}")
 
     // I've had some issues with ReplayStudio and slf4j (in dev env)
     // Simplest workaround that I've found is just to unzip the
