@@ -1,5 +1,6 @@
 package me.senseiwells.replay.commands
 
+import com.google.common.collect.Iterables
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
@@ -90,10 +91,6 @@ object ReplayCommand {
                         Commands.argument("players", EntityArgument.players()).then(
                             Commands.argument("save", BoolArgumentType.bool()).executes(this::onStopPlayers)
                         ).executes { this.onStopPlayers(it, true) }
-                    ).then(
-                        Commands.literal("all").then(
-                            Commands.argument("save", BoolArgumentType.bool()).executes { this.onStopAll(it, PlayerRecorders.recorders()) }
-                        ).executes { this.onStopAll(it, PlayerRecorders.recorders(), true) }
                     )
                 ).then(
                     Commands.literal("chunks").then(
@@ -125,6 +122,10 @@ object ReplayCommand {
                             Commands.argument("save", BoolArgumentType.bool()).executes { this.onStopAll(it, ChunkRecorders.recorders()) }
                         ).executes { this.onStopAll(it, ChunkRecorders.recorders(), true) }
                     )
+                ).then(
+                    Commands.literal("all").then(
+                        Commands.argument("save", BoolArgumentType.bool()).executes { this.onStopAll(it, Iterables.concat(ChunkRecorders.recorders(), PlayerRecorders.recorders())) }
+                    ).executes { this.onStopAll(it, Iterables.concat(ChunkRecorders.recorders(), PlayerRecorders.recorders()), true) }
                 )
             ).then(
                 Commands.literal("reload").executes(this::onReload)
@@ -145,6 +146,24 @@ object ReplayCommand {
                             Commands.argument("replay", StringArgumentType.string()).suggests(this.suggestSavedChunkReplayName()).executes {
                                 this.viewReplay(it, false)
                             }
+                        )
+                    )
+                )
+            ).then(
+                Commands.literal("marker").then(
+                    Commands.literal("add").then(
+                        Commands.literal("players").then(
+                            Commands.argument("players", EntityArgument.players()).then(
+                                Commands.argument("marker", StringArgumentType.string()).executes(this::addPlayerMarker)
+                            ).executes { this.addPlayerMarker(it, null) }
+                        )
+                    ).then(
+                        Commands.literal("chunks").then(
+                            Commands.literal("named").then(
+                                Commands.argument("name", StringArgumentType.string()).suggests(this.suggestExistingName()).then(
+                                    Commands.argument("marker", StringArgumentType.string()).executes(this::addChunkMarker)
+                                ).executes { this.addChunkMarker(it, null) }
+                            )
                         )
                     )
                 )
@@ -190,7 +209,11 @@ object ReplayCommand {
                 i++
             }
         }
-        context.source.sendSuccess({ Component.literal("Successfully started $i recordings") }, true)
+        if (i > 0) {
+            context.source.sendSuccess({ Component.literal("Successfully started $i recordings") }, true)
+        } else {
+            context.source.sendFailure(Component.literal("Failed to start any recordings"))
+        }
         return i
     }
 
@@ -250,7 +273,11 @@ object ReplayCommand {
                 i++
             }
         }
-        context.source.sendSuccess({ Component.literal("Successfully stopped $i recordings") }, true)
+        if (i > 0) {
+            context.source.sendSuccess({ Component.literal("Successfully stopped $i recordings") }, true)
+        } else {
+            context.source.sendFailure(Component.literal("Failed to stop any recordings"))
+        }
         return i
     }
 
@@ -292,7 +319,7 @@ object ReplayCommand {
 
     private fun onStopAll(
         context: CommandContext<CommandSourceStack>,
-        recorders: Collection<ReplayRecorder>,
+        recorders: Iterable<ReplayRecorder>,
         save: Boolean = BoolArgumentType.getBool(context, "save"),
     ): Int {
         for (recorder in recorders) {
@@ -376,6 +403,39 @@ object ReplayCommand {
 
         context.source.sendFailure(Component.literal("Failed to view replay, file $replayName doesn't exist!"))
         return 0
+    }
+
+    private fun addPlayerMarker(
+        context: CommandContext<CommandSourceStack>,
+        name: String? = StringArgumentType.getString(context, "marker")
+    ): Int {
+        val players = EntityArgument.getPlayers(context, "players")
+        val recorders = players.mapNotNull(PlayerRecorders::get)
+        return this.addMarker(context, name, recorders)
+    }
+
+    private fun addChunkMarker(
+        context: CommandContext<CommandSourceStack>,
+        name: String? = StringArgumentType.getString(context, "marker")
+    ): Int {
+        val area = StringArgumentType.getString(context, "name")
+        return this.addMarker(context, name, listOfNotNull(ChunkRecorders.get(area)))
+    }
+
+    private fun addMarker(
+        context: CommandContext<CommandSourceStack>,
+        name: String?,
+        recorders: Collection<ReplayRecorder>
+    ): Int {
+        for (recorder in recorders) {
+            recorder.addMarker(name)
+        }
+        if (recorders.isNotEmpty()) {
+            context.source.sendSuccess({ Component.literal("Successfully marked ${recorders.size} recordings") }, true)
+        } else {
+            context.source.sendFailure(Component.literal("Failed to mark any recordings"))
+        }
+        return 1
     }
 
     private fun getStatusFuture(
