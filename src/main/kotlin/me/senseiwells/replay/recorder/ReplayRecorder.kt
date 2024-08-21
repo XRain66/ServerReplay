@@ -2,6 +2,7 @@ package me.senseiwells.replay.recorder
 
 import com.google.common.hash.Hashing
 import com.mojang.authlib.GameProfile
+import com.replaymod.replaystudio.data.Marker
 import com.replaymod.replaystudio.io.ReplayOutputStream
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion
@@ -48,6 +49,8 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.phys.Vec2
+import net.minecraft.world.phys.Vec3
 import org.apache.commons.lang3.builder.StandardToStringStyle
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jetbrains.annotations.ApiStatus.Internal
@@ -59,6 +62,7 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.collections.HashSet
 import kotlin.io.path.*
 import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
@@ -137,6 +141,16 @@ abstract class ReplayRecorder(
      * The level that the replay recording is currently in.
      */
     abstract val level: ServerLevel
+
+    /**
+     * The current position of the recorder.
+     */
+    abstract val position: Vec3
+
+    /**
+     * The current rotation of the recorder.
+     */
+    abstract val rotation: Vec2
 
     init {
         this.executor = Executors.newSingleThreadExecutor()
@@ -257,6 +271,36 @@ abstract class ReplayRecorder(
         val future = this.close(save && this.protocol.id() == ConnectionProtocol.PLAY)
         this.onClosing(future)
         return future
+    }
+
+    /**
+     * Adds a marker to the replay file which can be viewed in ReplayMod.
+     *
+     * @param name The name of the marker, null for unnamed.
+     * @param position The marked position.
+     * @param rotation The marked rotation.
+     * @param time The timestamp of the marker (milliseconds).
+     */
+    @JvmOverloads
+    fun addMarker(
+        name: String? = null,
+        position: Vec3 = this.position,
+        rotation: Vec2 = this.rotation,
+        time: Int = this.getTimestamp().toInt()
+    ) {
+        val marker = Marker()
+        marker.time = time
+        marker.name = name
+        marker.x = position.x
+        marker.y = position.y
+        marker.z = position.z
+        marker.pitch = rotation.x
+        marker.yaw = rotation.y
+        this.executor.execute {
+            val markers = this.replay.markers.or(::HashSet)
+            markers.add(marker)
+            this.replay.writeMarkers(markers)
+        }
     }
 
     /**
