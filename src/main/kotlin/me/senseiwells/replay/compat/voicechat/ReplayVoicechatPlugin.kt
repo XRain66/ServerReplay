@@ -28,7 +28,6 @@ import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.level.ServerPlayer
 import java.util.*
 
-@Suppress("unused")
 object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
     /**
      * Mod id of the replay voicechat mod, see [here](https://github.com/henkelmax/replay-voice-chat/blob/master/src/main/java/de/maxhenkel/replayvoicechat/ReplayVoicechat.java).

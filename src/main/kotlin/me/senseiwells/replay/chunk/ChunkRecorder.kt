@@ -5,6 +5,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import me.senseiwells.replay.ServerReplay
+import me.senseiwells.replay.api.ServerReplayPluginManager
 import me.senseiwells.replay.mixin.chunk.WitherBossAccessor
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.player.PlayerRecorder
@@ -26,6 +27,8 @@ import net.minecraft.world.entity.boss.wither.WitherBoss
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.levelgen.Heightmap
+import net.minecraft.world.phys.Vec2
+import net.minecraft.world.phys.Vec3
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
@@ -69,6 +72,18 @@ class ChunkRecorder internal constructor(
         get() = this.chunks.level
 
     /**
+     * The current position of the recorder.
+     */
+    override val position: Vec3
+        get() = this.dummy.position()
+
+    /**
+     * The current rotation of the recorder.
+     */
+    override val rotation: Vec2
+        get() = Vec2.ZERO
+
+    /**
      * This gets the name of the replay recording.
      *
      * @return The name of the replay recording.
@@ -98,6 +113,7 @@ class ChunkRecorder internal constructor(
         RejoinedReplayPlayer.rejoin(this.dummy, this)
         this.spawnPlayer()
         this.sendChunksAndEntities()
+        ServerReplayPluginManager.startReplay(this)
 
         val chunks = this.level.chunkSource.chunkMap as ChunkMapAccessor
         for (pos in this.chunks) {

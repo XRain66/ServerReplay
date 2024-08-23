@@ -56,6 +56,12 @@ object ReplayViewerCommands {
                     Commands.literal("unpause").executes { pauseViewingReplay(it, false) }
                 ).then(
                     Commands.literal("restart").executes(::restartViewingReplay)
+                ).then(
+                    Commands.literal("progress").then(
+                        Commands.literal("show").executes(::showReplayProgress)
+                    ).then(
+                        Commands.literal("hide").executes(::hideReplayProgress)
+                    )
                 )
             )
         )
@@ -82,6 +88,18 @@ object ReplayViewerCommands {
     private fun restartViewingReplay(context: CommandContext<CommandSourceStack>): Int {
         val viewer = context.source.getReplayViewer()
         viewer.restart()
+        return Command.SINGLE_SUCCESS
+    }
+
+    private fun showReplayProgress(context: CommandContext<CommandSourceStack>): Int {
+        val viewer = context.source.getReplayViewer()
+        viewer.showProgress()
+        return Command.SINGLE_SUCCESS
+    }
+
+    private fun hideReplayProgress(context: CommandContext<CommandSourceStack>): Int {
+        val viewer = context.source.getReplayViewer()
+        viewer.hideProgress()
         return Command.SINGLE_SUCCESS
     }
 

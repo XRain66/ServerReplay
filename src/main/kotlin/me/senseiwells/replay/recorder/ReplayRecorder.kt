@@ -2,6 +2,7 @@ package me.senseiwells.replay.recorder
 
 import com.google.common.hash.Hashing
 import com.mojang.authlib.GameProfile
+import com.replaymod.replaystudio.data.Marker
 import com.replaymod.replaystudio.io.ReplayOutputStream
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion
@@ -16,8 +17,10 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.encodeToStream
 import me.senseiwells.replay.ServerReplay
+import me.senseiwells.replay.api.network.RecordablePayload
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.mixin.network.IdDispatchCodecAccessor
 import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.util.*
 import net.minecraft.ChatFormatting
@@ -38,6 +41,8 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.phys.Vec2
+import net.minecraft.world.phys.Vec3
 import org.apache.commons.lang3.builder.StandardToStringStyle
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jetbrains.annotations.ApiStatus.Internal
@@ -49,6 +54,7 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.collections.HashSet
 import kotlin.io.path.*
 import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
@@ -128,10 +134,20 @@ abstract class ReplayRecorder(
      */
     abstract val level: ServerLevel
 
+    /**
+     * The current position of the recorder.
+     */
+    abstract val position: Vec3
+
+    /**
+     * The current rotation of the recorder.
+     */
+    abstract val rotation: Vec2
+
     init {
         this.executor = Executors.newSingleThreadExecutor()
 
-        this.date = DateUtils.getFormattedDate()
+        this.date = DateTimeUtils.getFormattedDate()
         this.location = FileUtils.findNextAvailable(this.recordings.resolve(this.date))
         this.replay = SizedZipReplayFile(out = this.location.toFile())
 
@@ -175,26 +191,10 @@ abstract class ReplayRecorder(
             return
         }
 
-        val buf = FriendlyByteBuf(Unpooled.buffer())
-        val saved = try {
-            val id = this.protocol.codec(PacketFlow.CLIENTBOUND).packetId(outgoing)
-            val state = this.protocolAsState()
-
-            outgoing.write(buf)
-
-            if (ServerReplay.config.debug) {
-                val type = outgoing.getDebugName()
-                this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(buf.readableBytes())
-            }
-
-            val wrapped = ReplayUnpooled.wrappedBuffer(buf.array(), buf.arrayOffset(), buf.readableBytes())
-
-            val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
-            val registry = PacketTypeRegistry.get(version, state)
-
-            Packet(registry, id, wrapped)
-        } finally {
-            buf.release()
+        val saved = this.encodePacket(outgoing)
+        if (ServerReplay.config.debug) {
+            val type = outgoing.getDebugName()
+            this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(saved.buf.readableBytes())
         }
 
         val timestamp = this.getTimestamp()
@@ -263,6 +263,36 @@ abstract class ReplayRecorder(
         val future = this.close(save && this.protocol == ConnectionProtocol.PLAY)
         this.onClosing(future)
         return future
+    }
+
+    /**
+     * Adds a marker to the replay file which can be viewed in ReplayMod.
+     *
+     * @param name The name of the marker, null for unnamed.
+     * @param position The marked position.
+     * @param rotation The marked rotation.
+     * @param time The timestamp of the marker (milliseconds).
+     */
+    @JvmOverloads
+    fun addMarker(
+        name: String? = null,
+        position: Vec3 = this.position,
+        rotation: Vec2 = this.rotation,
+        time: Int = this.getTimestamp().toInt()
+    ) {
+        val marker = Marker()
+        marker.time = time
+        marker.name = name
+        marker.x = position.x
+        marker.y = position.y
+        marker.z = position.z
+        marker.pitch = rotation.x
+        marker.yaw = rotation.y
+        this.executor.execute {
+            val markers = this.replay.markers.or(::HashSet)
+            markers.add(marker)
+            this.replay.writeMarkers(markers)
+        }
     }
 
     /**
@@ -468,6 +498,12 @@ abstract class ReplayRecorder(
      * @return Whether this recorded should record it.
      */
     protected open fun canRecordPacket(packet: MinecraftPacket<*>): Boolean {
+        if (packet is ClientboundCustomPayloadPacket) {
+            val payload = packet.payload
+            if (payload is RecordablePayload && !payload.shouldRecord()) {
+                return false
+            }
+        }
         return true
     }
 
@@ -477,7 +513,7 @@ abstract class ReplayRecorder(
      *
      * @param block The function to call while ignoring packets.
      */
-    protected fun ignore(block: () -> Unit) {
+    fun ignore(block: () -> Unit) {
         val previous = this.ignore
         try {
             this.ignore = true
@@ -525,6 +561,25 @@ abstract class ReplayRecorder(
     @Internal
     fun afterConfigure() {
         this.protocol = ConnectionProtocol.PLAY
+    }
+
+    private fun encodePacket(outgoing: MinecraftPacket<*>): Packet {
+        val buf = FriendlyByteBuf(Unpooled.buffer())
+        try {
+            val id = this.protocol.codec(PacketFlow.CLIENTBOUND).packetId(outgoing)
+            val state = this.protocolAsState()
+
+            outgoing.write(buf)
+
+            val wrapped = ReplayUnpooled.wrappedBuffer(buf.array(), buf.arrayOffset(), buf.readableBytes())
+
+            val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
+            val registry = PacketTypeRegistry.get(version, state)
+
+            return Packet(registry, id, wrapped)
+        } finally {
+            buf.release()
+        }
     }
 
     private fun prePacket(packet: MinecraftPacket<*>): Boolean {
