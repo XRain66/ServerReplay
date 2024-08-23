@@ -34,7 +34,6 @@ val carpetVersion: String by project
 val voicechatVersion: String by project
 val voicechatApiVersion: String by project
 val permissionsVersion: String by project
-val syncmaticaVersion: String by project
 
 val releaseVersion = "${modVersion}+mc${mcVersion}"
 version = releaseVersion
@@ -55,8 +54,6 @@ dependencies {
     modImplementation("carpet:fabric-carpet:${mcVersion}-${carpetVersion}")
     modCompileOnly("maven.modrinth:simple-voice-chat:fabric-${voicechatVersion}")
     implementation("de.maxhenkel.voicechat:voicechat-api:${voicechatApiVersion}")
-
-    modCompileOnly("maven.modrinth:syncmatica:${syncmaticaVersion}")
 
     // I've had some issues with ReplayStudio and slf4j (in dev env)
     // Simplest workaround that I've found is just to unzip the
@@ -125,8 +122,8 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Backported some fixes from 1.20.6
-            - This is the final version for 1.20.4
+            - Fixed an issue with `/replay view`
+            - Added the ability to change the player's recording directory name
             """.trimIndent()
         )
         type = STABLE
