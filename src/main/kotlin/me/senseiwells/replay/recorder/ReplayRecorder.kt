@@ -20,7 +20,6 @@ import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.api.network.RecordablePayload
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.config.ReplayConfig
-import me.senseiwells.replay.mixin.network.IdDispatchCodecAccessor
 import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.util.*
 import net.minecraft.ChatFormatting

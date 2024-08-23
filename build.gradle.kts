@@ -14,6 +14,7 @@ plugins {
 val shade: Configuration by configurations.creating
 
 repositories {
+    mavenLocal()
     maven("https://maven.parchmentmc.org/")
     maven("https://masa.dy.fi/maven")
     maven("https://jitpack.io")
@@ -58,7 +59,7 @@ dependencies {
     implementation("de.maxhenkel.voicechat:voicechat-api:${voicechatApiVersion}")
 
     modCompileOnly("maven.modrinth:vmp-fabric:${vmpVersion}")
-    modCompileOnly("com.github.sakura-ryoko:syncmatica:${syncmaticaVersion}")
+    modCompileOnly("com.github.sakura:syncmatica:${syncmaticaVersion}")
 
     // I've had some issues with ReplayStudio and slf4j (in dev env)
     // Simplest workaround that I've found is just to unzip the

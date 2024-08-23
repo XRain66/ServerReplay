@@ -1,6 +1,5 @@
 package me.senseiwells.replay.api.network
 
-import net.minecraft.network.FriendlyByteBuf
 import net.minecraft.network.protocol.common.custom.CustomPacketPayload
 
 /**
@@ -15,11 +14,4 @@ interface RecordablePayload {
      * @return Whether the payload should be recorded.
      */
     fun shouldRecord(): Boolean
-
-    /**
-     * Writes the custom payload data manually.
-     *
-     * @param buf The byte buf to write to.
-     */
-    fun record(buf: FriendlyByteBuf)
 }
