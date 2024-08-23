@@ -1,6 +1,10 @@
 package me.senseiwells.replay.viewer
 
+import com.google.common.collect.ImmutableMultimap
+import com.google.common.collect.Multimap
+import com.google.common.collect.TreeMultimap
 import com.replaymod.replaystudio.PacketData
+import com.replaymod.replaystudio.data.Marker
 import com.replaymod.replaystudio.io.ReplayInputStream
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion
@@ -53,7 +57,6 @@ import java.io.IOException
 import java.nio.file.Path
 import java.util.*
 import java.util.function.Supplier
-import kotlin.collections.ArrayList
 import kotlin.io.path.ExperimentalPathApi
 import kotlin.io.path.deleteRecursively
 import kotlin.io.path.name
@@ -66,6 +69,7 @@ class ReplayViewer(
     val connection: ServerGamePacketListenerImpl
 ) {
     private val replay = ZipReplayFile(ReplayStudio(), this.location.toFile())
+    private val markers by lazy { this.readMarkers() }
 
     private var started = false
     private var teleported = false
@@ -88,7 +92,9 @@ class ReplayViewer(
     private val gameProtocol = GameProtocols.CLIENTBOUND.bind(RegistryFriendlyByteBuf.decorator(this.server.registryAccess()))
 
     private val duration = this.replay.metaData.duration.milliseconds
-    private var progress = 0.milliseconds
+    private var progress = Duration.ZERO
+
+    private var target = Duration.ZERO
 
     val server: MinecraftServer
         get() = this.player.server
@@ -130,12 +136,16 @@ class ReplayViewer(
         this.removeReplayState()
         this.coroutineScope.coroutineContext.cancelChildren()
         this.teleported = false
+        this.target = Duration.ZERO
 
         if (this.bossbar.isVisible) {
             this.send(ClientboundBossEventPacket.createAddPacket(this.bossbar))
         }
 
         this.coroutineScope.launch {
+            // Un-lazy the markers
+            markers
+
             hostResourcePacks()
             streamReplay { this.isActive }
         }
@@ -160,6 +170,31 @@ class ReplayViewer(
         }
     }
 
+    fun jumpTo(timestamp: Duration): Boolean {
+        if (timestamp.isNegative() || timestamp > this.duration) {
+            return false
+        }
+
+        if (this.progress > timestamp) {
+            this.restart()
+        }
+        this.target = timestamp
+        return true
+    }
+
+    fun jumpToMarker(name: String?, offset: Duration): Boolean {
+        val markers = this.markers[name]
+        if (markers.isEmpty()) {
+            return false
+        }
+        val marker = markers.firstOrNull { it.time.milliseconds > this.progress } ?: markers.first()
+        return this.jumpTo(marker.time.milliseconds + offset)
+    }
+
+    fun getMarkers(): List<Marker> {
+        return this.markers.values().sortedBy { it.time }
+    }
+
     fun setSpeed(speed: Float) {
         if (speed <= 0) {
             throw IllegalArgumentException("Cannot set non-positive speed multiplier!")
@@ -168,10 +203,14 @@ class ReplayViewer(
         this.sendTickingState()
     }
 
-    fun setPaused(paused: Boolean) {
+    fun setPaused(paused: Boolean): Boolean {
+        if (this.paused == paused) {
+            return false
+        }
         this.paused = paused
         this.sendTickingState()
         this.updateProgress(this.progress)
+        return true
     }
 
     fun showProgress(): Boolean {
@@ -198,6 +237,22 @@ class ReplayViewer(
             is ServerboundChatCommandPacket -> ReplayViewerCommands.handleCommand(packet.command, this)
             is ServerboundChatCommandSignedPacket -> ReplayViewerCommands.handleCommand(packet.command, this)
         }
+    }
+
+    private fun readMarkers(): Multimap<String?, Marker> {
+        val markers = this.replay.markers.orNull()
+        if (markers.isNullOrEmpty()) {
+            return ImmutableMultimap.of()
+        }
+
+        val multimap = TreeMultimap.create<String?, Marker>(
+            Comparator.nullsFirst<String?>(Comparator.naturalOrder()),
+            Comparator.comparingInt(Marker::getTime)
+        )
+        for (marker in markers) {
+            multimap.put(marker.name, marker)
+        }
+        return multimap
     }
 
     private suspend fun hostResourcePacks() {
@@ -234,7 +289,8 @@ class ReplayViewer(
         var lastTime = -1L
         var data: PacketData? = stream.readPacket()
         while (data != null && active.get()) {
-            if (lastTime != -1L) {
+            val progress = data.time.milliseconds
+            if (lastTime != -1L && progress > this.target) {
                 delay(((data.time - lastTime) / this.speedMultiplier).toLong())
             }
 
@@ -246,7 +302,7 @@ class ReplayViewer(
                 State.CONFIGURATION -> this.sendConfigurationPacket(data, active)
                 State.PLAY -> {
                     this.sendPlayPacket(data, active)
-                    this.updateProgress(data.time.milliseconds)
+                    this.updateProgress(progress)
                     lastTime = data.time
                 }
                 else -> { }
