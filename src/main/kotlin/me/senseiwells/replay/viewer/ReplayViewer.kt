@@ -625,7 +625,7 @@ class ReplayViewer(
 
     private fun synchronizeClientLevel() {
         this.send(ClientboundRespawnPacket(
-            player.createCommonSpawnInfo(player.serverLevel()),
+            this.player.createCommonSpawnInfo(this.player.serverLevel()),
             ClientboundRespawnPacket.KEEP_ALL_DATA
         ))
     }
