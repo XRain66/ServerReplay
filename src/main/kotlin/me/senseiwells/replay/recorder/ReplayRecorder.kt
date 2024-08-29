@@ -203,10 +203,13 @@ abstract class ReplayRecorder(
         val saved = try {
             this.encodePacket(outgoing)
         } catch (e: EncoderException) {
+            val name = outgoing.getDebugName()
             if (!safe) {
-                ServerReplay.logger.error("Failed to encode packet, likely due to being off-thread, skipping", e)
+                val state = this.protocolAsState()
+                val message = "Failed to encode packet $name during $state, likely due to being off-thread, skipping"
+                ServerReplay.logger.error(message, e)
             } else {
-                ServerReplay.logger.error("Failed to encode packet, skipping", e)
+                ServerReplay.logger.error("Failed to encode packet $name, skipping", e)
             }
             return
         }
@@ -939,7 +942,7 @@ abstract class ReplayRecorder(
             return if (this is ClientboundCustomPayloadPacket) {
                 "CustomPayload(${this.payload.type().id})"
             } else {
-                this::class.java.simpleName
+                this.type().id.toString()
             }
         }
     }
