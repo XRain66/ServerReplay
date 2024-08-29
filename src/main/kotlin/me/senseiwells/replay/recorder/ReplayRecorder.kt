@@ -11,6 +11,7 @@ import com.replaymod.replaystudio.protocol.PacketTypeRegistry
 import com.replaymod.replaystudio.replay.ReplayMetaData
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
+import io.netty.handler.codec.EncoderException
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -199,7 +200,16 @@ abstract class ReplayRecorder(
             return
         }
 
-        val saved = this.encodePacket(outgoing)
+        val saved = try {
+            this.encodePacket(outgoing)
+        } catch (e: EncoderException) {
+            if (!safe) {
+                ServerReplay.logger.error("Failed to encode packet, likely due to being off-thread, skipping", e)
+            } else {
+                ServerReplay.logger.error("Failed to encode packet, skipping", e)
+            }
+            return
+        }
         if (ServerReplay.config.debug) {
             val type = outgoing.getDebugName()
             this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(saved.buf.readableBytes())
