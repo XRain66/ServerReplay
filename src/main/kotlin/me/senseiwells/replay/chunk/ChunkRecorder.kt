@@ -12,8 +12,10 @@ import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ChunkSender.WrappedTrackedEntity
 import me.senseiwells.replay.recorder.ReplayRecorder
+import me.senseiwells.replay.rejoin.RejoinConnection
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import me.senseiwells.replay.util.ClientboundAddEntityPacket
+import net.fabricmc.fabric.impl.event.interaction.FakePlayerNetworkHandler
 import net.minecraft.core.UUIDUtil
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
@@ -22,6 +24,8 @@ import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.server.level.ClientInformation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
+import net.minecraft.server.network.CommonListenerCookie
+import net.minecraft.server.network.ServerGamePacketListenerImpl
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.boss.wither.WitherBoss
 import net.minecraft.world.level.ChunkPos
@@ -53,7 +57,9 @@ class ChunkRecorder internal constructor(
     recordings: Path
 ): ReplayRecorder(chunks.level.server, PROFILE, recordings), ChunkSender {
     private val dummy by lazy {
-        ServerPlayer(this.server, this.chunks.level, PROFILE, ClientInformation.createDefault())
+        val player = ServerPlayer(this.server, this.chunks.level, PROFILE, ClientInformation.createDefault())
+        ChunkGamePacketPacketListener(this)
+        player
     }
 
     private val sentChunks = LongOpenHashSet()
@@ -300,9 +306,6 @@ class ChunkRecorder internal constructor(
      *
      * **This is *not* a real player, and many operations on this instance
      * may cause crashes, be very careful with how you use this.**
-     *
-     * This player has no [ServerPlayer.connection] and thus **cannot** be
-     * sent packets, any attempts will result in a [NullPointerException].
      *
      * @return The dummy chunk recording player.
      */

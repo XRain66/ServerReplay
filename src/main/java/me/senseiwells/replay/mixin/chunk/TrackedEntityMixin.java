@@ -69,8 +69,7 @@ public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
 		if (this.replay$chunks.add(recorder)) {
 			recorder.addRecordable(this);
 			List<Packet<? super ClientGamePacketListener>> list = new ArrayList<>();
-			// The player parameter is never used, we can just pass in null
-			this.serverEntity.sendPairingData(null, list::add);
+			this.serverEntity.sendPairingData(recorder.getDummyPlayer(), list::add);
 			recorder.record(new ClientboundBundlePacket(list));
 
 			recorder.onEntityTracked(this.entity);

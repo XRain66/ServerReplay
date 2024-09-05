@@ -84,7 +84,7 @@ import net.minecraft.network.protocol.Packet as MinecraftPacket
  */
 abstract class ReplayRecorder(
     val server: MinecraftServer,
-    protected val profile: GameProfile,
+    public val profile: GameProfile,
     private val recordings: Path
 ) {
     private val packets by lazy { Object2ObjectOpenHashMap<String, DebugPacketData>() }
