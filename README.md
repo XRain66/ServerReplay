@@ -429,14 +429,11 @@ following to your `build.gradle.kts`
 
 ```kts
 repositories {
-    maven {
-        url = uri("https://jitpack.io")
-    }
+    maven("https://maven.supersanta.me/snapshots")
 }
 
 dependencies {
-    // For the most recent version, use the latest commit hash
-    modImplementation("com.github.senseiwells:ServerReplay:da3b0e55ce")
+    modImplementation("me.senseiwells:server-replay:1.1.2+1.21.1")
 }
 ```
 
