@@ -28,7 +28,6 @@ repositories {
 
 val modVersion = "1.1.2"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
-val mavenVersion = "${modVersion}+${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
 
@@ -97,6 +96,12 @@ tasks {
 
         relocate("com.github.steveice10.netty", "io.netty")
         exclude("com/github/steveice10/netty/**")
+
+        exclude("it/unimi/dsi/**")
+        exclude("org/apache/commons/**")
+        exclude("org/xbill/DNS/**")
+        exclude("com/google/**")
+
         configurations = listOf(shade)
 
         archiveClassifier = "shaded"
@@ -135,22 +140,6 @@ tasks {
             }
         }
     }
-
-    register("updateReadme") {
-        val readmes = listOf("./README.md")
-        val regex = Regex("""me\.senseiwells:server-replay:[\d\.\-a-zA-Z+]+""")
-        val replacement = "me.senseiwells:server-replay:${mavenVersion}"
-        for (path in readmes) {
-            val readme = file(path)
-            readme.writeText(readme.readText().replace(regex, replacement))
-        }
-
-        println("Successfully updated all READMEs")
-    }
-
-    named("publish").configure {
-        finalizedBy("updateReadme")
-    }
 }
 
 publishing {
@@ -158,8 +147,10 @@ publishing {
         create<MavenPublication>("ServerReplay") {
             groupId = "me.senseiwells"
             artifactId = "server-replay"
-            version = mavenVersion
+            version = "${modVersion}+${libs.versions.minecraft.get()}"
             from(components["java"])
+
+            updateReadme("./README.md")
         }
     }
 
@@ -182,6 +173,16 @@ publishing {
 }
 
 private fun DependencyHandler.includeModImplementation(provider: Provider<*>, action: Action<ExternalModuleDependency>) {
-    this.include(provider, action)
-    this.modImplementation(provider, action)
+    include(provider, action)
+    modImplementation(provider, action)
+}
+
+private fun MavenPublication.updateReadme(vararg readmes: String) {
+    val location = "${groupId}:${artifactId}"
+    val regex = Regex("""${Regex.escape(location)}:[\d\.\-a-zA-Z+]+""")
+    val locationWithVersion = "${location}:${version}"
+    for (path in readmes) {
+        val readme = file(path)
+        readme.writeText(readme.readText().replace(regex, locationWithVersion))
+    }
 }
