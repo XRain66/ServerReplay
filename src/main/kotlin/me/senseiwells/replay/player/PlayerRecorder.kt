@@ -47,7 +47,7 @@ class PlayerRecorder internal constructor(
      * The level that the player is currently in.
      */
     override val level: ServerLevel
-        get() = this.getPlayerOrThrow().serverLevel()
+        get() = this.player?.serverLevel() ?: this.server.overworld()
 
     /**
      * The current position of the player.
