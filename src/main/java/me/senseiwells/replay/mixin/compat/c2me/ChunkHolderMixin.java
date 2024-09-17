@@ -1,4 +1,4 @@
-package me.senseiwells.replay.mixin.chunk;
+package me.senseiwells.replay.mixin.compat.c2me;
 
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import me.senseiwells.replay.chunk.ChunkRecorder;
@@ -7,7 +7,6 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.level.*;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.LevelChunk;
-import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -20,9 +19,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
-
-import static net.minecraft.server.level.ChunkHolder.UNLOADED_LEVEL_CHUNK;
 
 @Mixin(ChunkHolder.class)
 public abstract class ChunkHolderMixin extends GenerationChunkHolder implements ChunkRecordable {
@@ -56,42 +52,6 @@ public abstract class ChunkHolderMixin extends GenerationChunkHolder implements 
 		return noPlayers && this.replay$recorders.isEmpty();
 	}
 
-	@Inject(
-		method = "updateFutures",
-		at = @At(
-			value = "INVOKE",
-			target = "Lnet/minecraft/server/level/ChunkHolder;updateChunkToSave(Ljava/util/concurrent/CompletableFuture;Ljava/lang/String;)V",
-			shift = At.Shift.AFTER,
-			ordinal = 0
-		)
-	)
-	private void onChunkLoad(ChunkMap chunkMap, Executor executor, CallbackInfo ci) {
-		this.getFullChunkFuture().thenAccept(result -> {
-			result.ifSuccess(chunk -> {
-				for (ChunkRecorder recorder : this.getRecorders()) {
-					recorder.onChunkLoaded(chunk);
-				}
-			});
-		});
-	}
-
-	@Inject(
-		method = "updateFutures",
-		at = @At(
-			value = "INVOKE",
-			target = "Ljava/util/concurrent/CompletableFuture;complete(Ljava/lang/Object;)Z",
-			ordinal = 0
-		)
-	)
-	private void onChunkUnload(ChunkMap chunkMap, Executor executor, CallbackInfo ci) {
-		LevelChunk chunk = this.getFullChunk();
-		if (chunk != null) {
-			for (ChunkRecorder recorder : this.getRecorders()) {
-				recorder.onChunkUnloaded(this.pos);
-			}
-		}
-	}
-
 	@Override
 	public Collection<ChunkRecorder> replay$getRecorders() {
 		return this.replay$recorders;
@@ -99,6 +59,11 @@ public abstract class ChunkHolderMixin extends GenerationChunkHolder implements 
 
 	@Override
 	public void replay$addRecorder(ChunkRecorder recorder) {
+		CompletableFuture<ChunkResult<LevelChunk>> future = this.getFullChunkFuture();
+		if (future.isDone() && !future.getNow(ChunkHolder.UNLOADED_LEVEL_CHUNK).isSuccess()) {
+			return;
+		}
+
 		if (this.replay$recorders.add(recorder)) {
 			this.getFullChunkFuture().thenAccept(result -> {
 				result.ifSuccess(recorder::onChunkLoaded);
@@ -111,31 +76,17 @@ public abstract class ChunkHolderMixin extends GenerationChunkHolder implements 
 	@Override
 	public void replay$removeRecorder(ChunkRecorder recorder) {
 		if (this.replay$recorders.remove(recorder)) {
-			LevelChunk chunk = this.getFullChunk();
-			if (chunk != null) {
-				recorder.onChunkUnloaded(this.pos);
-			}
-
+			recorder.onChunkUnloaded(this.pos);
 			recorder.removeRecordable(this);
 		}
 	}
 
 	@Override
 	public void replay$removeAllRecorders() {
-		LevelChunk chunk = this.getFullChunk();
 		for (ChunkRecorder recorder : this.replay$recorders) {
-			if (chunk != null) {
-				recorder.onChunkUnloaded(this.pos);
-			}
+			recorder.onChunkUnloaded(this.pos);
 			recorder.removeRecordable(this);
 		}
 		this.replay$recorders.clear();
-	}
-
-
-	@Unique
-	@Nullable
-	private LevelChunk getFullChunk() {
-		return this.getFullChunkFuture().getNow(UNLOADED_LEVEL_CHUNK).orElse(null);
 	}
 }

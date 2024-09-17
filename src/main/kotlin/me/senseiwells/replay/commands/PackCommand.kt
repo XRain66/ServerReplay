@@ -6,7 +6,7 @@ import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.Suggestions
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
-import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
+import me.senseiwells.replay.ducks.PackTracker
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
@@ -24,7 +24,7 @@ object PackCommand {
                 Commands.literal("push").then(
                     Commands.argument("url", StringArgumentType.string()).then(
                         Commands.argument("uuid", UuidArgument.uuid()).executes(this::pushPack)
-                    ).executes { this.pushPack(it) }
+                    ).executes { this.pushPackSimple(it) }
                 )
             ).then(
                 Commands.literal("pop").then(
@@ -34,7 +34,7 @@ object PackCommand {
         )
     }
 
-    private fun pushPack(context: CommandContext<CommandSourceStack>): Int {
+    private fun pushPackSimple(context: CommandContext<CommandSourceStack>): Int {
         val url = StringArgumentType.getString(context, "url")
         val uuid = UUID.nameUUIDFromBytes(url.encodeToByteArray())
         return this.pushPack(context, uuid)
@@ -45,7 +45,7 @@ object PackCommand {
         uuid: UUID = UuidArgument.getUuid(context, "uuid")
     ): Int {
         val url = StringArgumentType.getString(context, "url")
-        val packet = ClientboundResourcePackPushPacket(uuid, url, "", false, null)
+        val packet = ClientboundResourcePackPushPacket(uuid, url, "", false, Optional.empty())
         for (player in context.source.server.playerList.players) {
             player.connection.send(packet)
         }
@@ -66,7 +66,7 @@ object PackCommand {
         builder: SuggestionsBuilder
     ): CompletableFuture<Suggestions> {
         val player = context.source.player ?: return Suggestions.empty()
-        val packs = (player.connection as `ServerReplay$PackTracker`).`replay$getPacks`()
+        val packs = (player.connection as PackTracker).`replay$getPacks`()
         return SharedSuggestionProvider.suggest(packs.map { it.id.toString() }, builder)
     }
 }

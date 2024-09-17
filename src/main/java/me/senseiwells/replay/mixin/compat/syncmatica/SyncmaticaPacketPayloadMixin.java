@@ -6,7 +6,7 @@ import net.minecraft.network.FriendlyByteBuf;
 import org.jetbrains.annotations.NotNull;
 import org.spongepowered.asm.mixin.Mixin;
 
-@Mixin(SyncmaticaPacket.Payload.class)
+@Mixin(value = SyncmaticaPacket.Payload.class, remap = false)
 @SuppressWarnings("AddedMixinMembersNamePattern")
 public class SyncmaticaPacketPayloadMixin implements RecordablePayload {
     @Override

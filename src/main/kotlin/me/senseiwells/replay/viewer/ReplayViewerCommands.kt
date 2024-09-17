@@ -8,7 +8,6 @@ import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.tree.RootCommandNode
 import me.senseiwells.replay.util.DateTimeUtils.formatHHMMSS
-import me.senseiwells.replay.viewer.ReplayViewerCommands.getReplayViewer
 import me.senseiwells.replay.viewer.ReplayViewerUtils.getViewingReplay
 import net.minecraft.ChatFormatting
 import net.minecraft.commands.CommandSource
@@ -82,6 +81,10 @@ object ReplayViewerCommands {
                                         Commands.argument("offset", TimeArgument.time(Int.MIN_VALUE)).executes(::jumpToMarker)
                                     ).executes { jumpToMarker(it, offset = 0) }
                                 )
+                            )
+                        ).then(
+                            Commands.literal("timestamp").then(
+                                Commands.argument("time", TimeArgument.time()).executes(::jumpTo)
                             )
                         )
                     )
@@ -167,6 +170,19 @@ object ReplayViewerCommands {
             return Command.SINGLE_SUCCESS
         }
         context.source.sendFailure(Component.literal("No such marker found, or offset too large"))
+        return 0
+    }
+
+    private fun jumpTo(context: CommandContext<CommandSourceStack>): Int {
+        val viewer = context.source.getReplayViewer()
+        val time = IntegerArgumentType.getInteger(context, "time")
+        if (viewer.jumpTo((time * 50).milliseconds)) {
+            context.source.sendSuccess({
+                Component.literal("Successfully jumped to timestamp")
+            }, false)
+            return Command.SINGLE_SUCCESS
+        }
+        context.source.sendFailure(Component.literal("Timestamp provided was outside of recording"))
         return 0
     }
 

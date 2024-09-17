@@ -47,7 +47,7 @@ class PlayerRecorder internal constructor(
      * The level that the player is currently in.
      */
     override val level: ServerLevel
-        get() = this.getPlayerOrThrow().serverLevel()
+        get() = this.player?.serverLevel() ?: this.server.overworld()
 
     /**
      * The current position of the player.
@@ -195,9 +195,7 @@ class PlayerRecorder internal constructor(
     @Internal
     fun spawnPlayer(player: ServerEntity) {
         val list = ArrayList<Packet<ClientGamePacketListener>>()
-        // The player parameter is never used, we can just pass in null
-        @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-        player.sendPairingData(null, list::add)
+        player.sendPairingData(this.getPlayerOrThrow(), list::add)
         this.record(ClientboundBundlePacket(list))
     }
 

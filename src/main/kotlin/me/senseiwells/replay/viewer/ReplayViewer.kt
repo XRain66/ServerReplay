@@ -14,11 +14,12 @@ import com.replaymod.replaystudio.studio.ReplayStudio
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
+import it.unimi.dsi.fastutil.ints.IntSets
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import kotlinx.coroutines.*
 import kotlinx.coroutines.future.await
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
+import me.senseiwells.replay.ducks.PackTracker
 import me.senseiwells.replay.mixin.viewer.EntityInvoker
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import me.senseiwells.replay.util.DateTimeUtils.formatHHMMSS
@@ -75,7 +76,7 @@ class ReplayViewer(
     private var teleported = false
 
     private val coroutineScope = CoroutineScope(Dispatchers.Default + Job())
-    private val packHost = PackHost(1)
+    private val packHost = PackHost(ServerReplay.config.replayServerIp, nextFreePort())
     private val packs = Int2ObjectOpenHashMap<String>()
 
     private var tickSpeed = 20.0F
@@ -152,7 +153,8 @@ class ReplayViewer(
     }
 
     fun close() {
-        this.packHost.shutdown()
+        freePort(this.packHost.port)
+        this.packHost.stop()
         this.coroutineScope.coroutineContext.cancelChildren()
         this.connection.stopViewingReplay()
 
@@ -269,7 +271,7 @@ class ReplayViewer(
             this.packHost.addPack(ReplayPack(hash, this.replay))
         }
 
-        this.packHost.start(ServerReplay.config.replayViewerPackIp, ServerReplay.config.replayViewerPackPort).await()
+        this.packHost.start().await()
 
         for ((id, hash) in indices) {
             val hosted = this.packHost.getHostedPack(hash) ?: continue
@@ -441,7 +443,7 @@ class ReplayViewer(
             }
         }
 
-        this.previousPacks.addAll((this.connection as `ServerReplay$PackTracker`).`replay$getPacks`())
+        this.previousPacks.addAll((this.connection as PackTracker).`replay$getPacks`())
         this.send(ClientboundResourcePackPopPacket(Optional.empty()))
     }
 
@@ -625,7 +627,7 @@ class ReplayViewer(
 
     private fun synchronizeClientLevel() {
         this.send(ClientboundRespawnPacket(
-            player.createCommonSpawnInfo(player.serverLevel()),
+            this.player.createCommonSpawnInfo(this.player.serverLevel()),
             ClientboundRespawnPacket.KEEP_ALL_DATA
         ))
     }
@@ -637,5 +639,19 @@ class ReplayViewer(
     private companion object {
         const val VIEWER_ID = Int.MAX_VALUE - 10
         val VIEWER_UUID: UUID = UUIDUtil.createOfflinePlayerUUID("-ViewingProfile-")
+
+        private val active = IntSets.synchronize(IntOpenHashSet())
+
+        fun nextFreePort(): Int {
+            var current = ServerReplay.config.replayViewerPackPort
+            while (!this.active.add(current)) {
+                current += 1
+            }
+            return current
+        }
+
+        fun freePort(port: Int) {
+            this.active.remove(port)
+        }
     }
 }

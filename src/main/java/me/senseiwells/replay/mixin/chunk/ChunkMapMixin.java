@@ -30,7 +30,7 @@ public class ChunkMapMixin {
 			remap = false
 		)
 	)
-	private void onUpdateChunkMap(
+	private void onLoadChunk(
 		long chunkPos,
 		int newLevel,
 		ChunkHolder holder,

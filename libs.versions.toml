@@ -1,0 +1,42 @@
+[versions]
+fabric-loom          = "1.7-SNAPSHOT"
+mod-publish          = "0.7.0"
+kotlin-serialization = "1.9.21"
+shadow               = "8.1.1"
+explosion            = "0.2.0"
+minecraft            = "1.21.1"
+fabric-loader        = "0.16.5"
+parchment            = "1.21:2024.07.28"
+fabric-api           = "0.103.0+1.21.1"
+fabric-kotlin        = "1.11.0+kotlin.2.0.0"
+permissions          = "0.3.1"
+carpet               = "1.4.147"
+voicechat            = "fabric-1.21.1-2.5.20"
+voicechat-api        = "2.5.0"
+vmp                  = "0.2.0+beta.7.162+1.21"
+c2me                 = "0.3.0+alpha.0.206+1.21.1"
+servux               = "1.21-0.3.8-sakura.1"
+syncmatica           = "1.21-sakura.6"
+replay-studio        = "1e96fda605"
+
+[libraries]
+minecraft     = { module = "com.mojang:minecraft"                 , version.ref = "minecraft" }
+fabric-loader = { module = "net.fabricmc:fabric-loader"           , version.ref = "fabric-loader" }
+fabric-api    = { module = "net.fabricmc.fabric-api:fabric-api"   , version.ref = "fabric-api" }
+fabric-kotlin = { module = "net.fabricmc:fabric-language-kotlin"  , version.ref = "fabric-kotlin" }
+permissions   = { module = "me.lucko:fabric-permissions-api"      , version.ref = "permissions" }
+carpet        = { module = "com.github.gnembon:fabric-carpet"     , version.ref = "carpet" }
+voicechat     = { module = "maven.modrinth:simple-voice-chat"     , version.ref = "voicechat" }
+voicechat-api = { module = "de.maxhenkel.voicechat:voicechat-api" , version.ref = "voicechat-api" }
+vmp           = { module = "maven.modrinth:vmp-fabric"            , version.ref = "vmp" }
+c2me          = { module = "maven.modrinth:c2me-fabric"           , version.ref = "c2me" }
+servux        = { module = "com.github.sakura-ryoko:servux"       , version.ref = "servux" }
+syncmatica    = { module = "com.github.sakura-ryoko:syncmatica"   , version.ref = "syncmatica" }
+replay-studio = { module = "com.github.ReplayMod:ReplayStudio"    , version.ref = "replay-studio" }
+
+[plugins]
+fabric-loom          = { id = "fabric-loom", version.ref = "fabric-loom" }
+kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin-serialization" }
+mod-publish          = { id = "me.modmuss50.mod-publish-plugin", version.ref = "mod-publish" }
+shadow               = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
+explosion            = { id = "lol.bai.explosion", version.ref = "explosion"}
