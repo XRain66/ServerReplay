@@ -2,7 +2,7 @@ package me.senseiwells.replay.viewer
 
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
-import me.senseiwells.replay.ducks.`ServerReplay$ReplayViewable`
+import me.senseiwells.replay.ducks.ReplayViewable
 import me.senseiwells.replay.mixin.viewer.ClientboundPlayerInfoUpdatePacketAccessor
 import me.senseiwells.replay.viewer.ReplayViewerUtils.toClientboundConfigurationPacket
 import net.fabricmc.fabric.impl.networking.payload.RetainedPayload
@@ -69,19 +69,19 @@ object ReplayViewerUtils {
     }
 
     fun ServerGamePacketListenerImpl.sendReplayPacket(packet: Packet<*>) {
-        (this as `ServerReplay$ReplayViewable`).`replay$sendReplayViewerPacket`(packet)
+        (this as ReplayViewable).`replay$sendReplayViewerPacket`(packet)
     }
 
     fun ServerGamePacketListenerImpl.startViewingReplay(viewer: ReplayViewer) {
-        (this as `ServerReplay$ReplayViewable`).`replay$startViewingReplay`(viewer)
+        (this as ReplayViewable).`replay$startViewingReplay`(viewer)
     }
 
     fun ServerGamePacketListenerImpl.stopViewingReplay() {
-        (this as `ServerReplay$ReplayViewable`).`replay$stopViewingReplay`()
+        (this as ReplayViewable).`replay$stopViewingReplay`()
     }
 
     fun ServerGamePacketListenerImpl.getViewingReplay(): ReplayViewer? {
-        return (this as `ServerReplay$ReplayViewable`).`replay$getViewingReplay`()
+        return (this as ReplayViewable).`replay$getViewingReplay`()
     }
 
     fun createClientboundPlayerInfoUpdatePacket(

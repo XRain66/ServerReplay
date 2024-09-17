@@ -4,7 +4,7 @@ import ch.endte.syncmatica.network.SyncmaticaPayload;
 import me.senseiwells.replay.api.network.RecordablePayload;
 import org.spongepowered.asm.mixin.Mixin;
 
-@Mixin(SyncmaticaPayload.class)
+@Mixin(value = SyncmaticaPayload.class, remap = false)
 @SuppressWarnings("AddedMixinMembersNamePattern")
 public class SyncmaticaPacketPayloadMixin implements RecordablePayload {
     @Override

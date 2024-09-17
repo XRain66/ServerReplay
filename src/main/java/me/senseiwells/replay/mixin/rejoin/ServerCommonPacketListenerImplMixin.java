@@ -1,6 +1,6 @@
 package me.senseiwells.replay.mixin.rejoin;
 
-import me.senseiwells.replay.ducks.ServerReplay$PackTracker;
+import me.senseiwells.replay.ducks.PackTracker;
 import net.minecraft.network.PacketSendListener;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.common.ClientboundResourcePackPopPacket;
@@ -20,7 +20,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 @Mixin(ServerCommonPacketListenerImpl.class)
-public class ServerCommonPacketListenerImplMixin implements ServerReplay$PackTracker {
+public class ServerCommonPacketListenerImplMixin implements PackTracker {
 	// We need to keep track of what packs a player has...
 	// We don't really care if the player accepts / declines them, we'll record them anyway.
 	@Unique private final Map<UUID, ClientboundResourcePackPushPacket> replay$packs = new ConcurrentHashMap<>();

@@ -10,6 +10,7 @@ import com.replaymod.replaystudio.protocol.Packet
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry
 import com.replaymod.replaystudio.replay.ReplayMetaData
 import io.netty.buffer.Unpooled
+import io.netty.handler.codec.EncoderException
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -74,7 +75,7 @@ import net.minecraft.network.protocol.Packet as MinecraftPacket
  */
 abstract class ReplayRecorder(
     val server: MinecraftServer,
-    protected val profile: GameProfile,
+    val profile: GameProfile,
     private val recordings: Path
 ) {
     private val packets by lazy { Object2ObjectOpenHashMap<String, DebugPacketData>() }
@@ -190,7 +191,19 @@ abstract class ReplayRecorder(
             return
         }
 
-        val saved = this.encodePacket(outgoing)
+        val saved = try {
+            this.encodePacket(outgoing)
+        } catch (e: EncoderException) {
+            val name = outgoing.getDebugName()
+            if (!safe) {
+                val state = this.protocolAsState()
+                val message = "Failed to encode packet $name during $state, likely due to being off-thread, skipping"
+                ServerReplay.logger.error(message, e)
+            } else {
+                ServerReplay.logger.error("Failed to encode packet $name, skipping", e)
+            }
+            return
+        }
         if (ServerReplay.config.debug) {
             val type = outgoing.getDebugName()
             this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(saved.buf.readableBytes())
@@ -442,7 +455,7 @@ abstract class ReplayRecorder(
      */
     protected open fun addMetadata(map: MutableMap<String, JsonElement>) {
         map["name"] = JsonPrimitive(this.getName())
-        map["settings"] = ReplayConfig.toJson(ServerReplay.config.copy(replayViewerPackIp = "hidden"))
+        map["settings"] = ReplayConfig.toJson(ServerReplay.config.copy(replayServerIp = "hidden"))
         map["location"] = JsonPrimitive(this.location.pathString)
         map["time"] = JsonPrimitive(System.currentTimeMillis())
 
@@ -903,7 +916,7 @@ abstract class ReplayRecorder(
             return if (this is ClientboundCustomPayloadPacket) {
                 "CustomPayload(${this.payload.id()})"
             } else {
-                this::class.java.simpleName
+                this.type().id.toString()
             }
         }
     }

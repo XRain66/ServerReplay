@@ -2,7 +2,7 @@ package me.senseiwells.replay.mixin.chunk;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import me.senseiwells.replay.chunk.ChunkRecorder;
-import me.senseiwells.replay.ducks.ServerReplay$ChunkRecordable;
+import me.senseiwells.replay.ducks.ChunkRecordable;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.protocol.game.ClientboundBossEventPacket;
 import net.minecraft.server.level.ServerBossEvent;
@@ -22,7 +22,7 @@ import java.util.UUID;
 import java.util.function.Function;
 
 @Mixin(ServerBossEvent.class)
-public abstract class ServerBossEventMixin extends BossEvent implements ServerReplay$ChunkRecordable {
+public abstract class ServerBossEventMixin extends BossEvent implements ChunkRecordable {
 	@Shadow private boolean visible;
 	@Unique private final Set<ChunkRecorder> replay$recorders = new HashSet<>();
 

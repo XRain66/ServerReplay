@@ -1,7 +1,7 @@
 package me.senseiwells.replay.mixin.player;
 
 import com.mojang.authlib.GameProfile;
-import me.senseiwells.replay.ducks.ServerReplay$ReplayViewable;
+import me.senseiwells.replay.ducks.ReplayViewable;
 import me.senseiwells.replay.player.PlayerRecorder;
 import me.senseiwells.replay.player.PlayerRecorders;
 import me.senseiwells.replay.viewer.ReplayViewer;
@@ -40,7 +40,7 @@ public abstract class ServerCommonPacketListenerImplMixin {
 			recorder.stop();
 		}
 
-		if (this instanceof ServerReplay$ReplayViewable viewable) {
+		if (this instanceof ReplayViewable viewable) {
 			ReplayViewer viewer = viewable.replay$getViewingReplay();
 			if (viewer != null) {
 				viewer.close();

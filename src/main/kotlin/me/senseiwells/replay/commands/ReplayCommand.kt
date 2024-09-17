@@ -12,19 +12,22 @@ import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.chunk.ChunkArea
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.chunk.ChunkRecorders
-import me.senseiwells.replay.config.ReplayConfig
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.util.FileUtils.streamDirectoryEntriesOrEmpty
 import me.senseiwells.replay.viewer.ReplayViewer
+import net.minecraft.ChatFormatting
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.commands.arguments.DimensionArgument
 import net.minecraft.commands.arguments.EntityArgument
+import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.*
@@ -145,6 +148,24 @@ object ReplayCommand {
                         Commands.argument("area", StringArgumentType.string()).suggests(this.suggestSavedChunkArea()).then(
                             Commands.argument("replay", StringArgumentType.string()).suggests(this.suggestSavedChunkReplayName()).executes {
                                 this.viewReplay(it, false)
+                            }
+                        )
+                    )
+                )
+            ).then(
+                Commands.literal("download").then(
+                    Commands.literal("players").then(
+                        Commands.argument("name", StringArgumentType.string()).suggests(this.suggestSavedPlayerName()).then(
+                            Commands.argument("replay", StringArgumentType.string()).suggests(this.suggestSavedPlayerReplayName()).executes {
+                                this.downloadReplay(it, true)
+                            }
+                        )
+                    )
+                ).then(
+                    Commands.literal("chunks").then(
+                        Commands.argument("area", StringArgumentType.string()).suggests(this.suggestSavedChunkArea()).then(
+                            Commands.argument("replay", StringArgumentType.string()).suggests(this.suggestSavedChunkReplayName()).executes {
+                                this.downloadReplay(it, false)
                             }
                         )
                     )
@@ -330,7 +351,7 @@ object ReplayCommand {
     }
 
     private fun onReload(context: CommandContext<CommandSourceStack>): Int {
-        ServerReplay.config = ReplayConfig.read()
+        ServerReplay.reload()
         context.source.sendSuccess({ Component.literal("Successfully reloaded config.") }, true)
         return 1
     }
@@ -385,8 +406,8 @@ object ReplayCommand {
     ): Int {
         val player = context.source.playerOrException
         val path = if (isPlayer) {
-            val uuid = StringArgumentType.getString(context, "name")
-            ServerReplay.config.playerRecordingPath.resolve(uuid.toString())
+            val name = StringArgumentType.getString(context, "name")
+            ServerReplay.config.playerRecordingPath.resolve(name)
         } else {
             val area = StringArgumentType.getString(context, "area")
             ServerReplay.config.chunkRecordingPath.resolve(area)
@@ -403,6 +424,37 @@ object ReplayCommand {
 
         context.source.sendFailure(Component.literal("Failed to view replay, file $replayName doesn't exist!"))
         return 0
+    }
+
+    private fun downloadReplay(
+        context: CommandContext<CommandSourceStack>,
+        isPlayer: Boolean
+    ): Int {
+        val url = ServerReplay.getDownloadUrl()
+        if (!ServerReplay.config.allowDownloadingReplays || url == null) {
+            context.source.sendFailure(
+                Component.literal("Downloading replays is disabled, you must enable it in the config")
+            )
+            return 0
+        }
+
+        val root = if (isPlayer) {
+            val name = StringArgumentType.getString(context, "name")
+            "player/${URLEncoder.encode(name, StandardCharsets.UTF_8)}"
+        } else {
+            val area = StringArgumentType.getString(context, "area")
+            "chunk/${URLEncoder.encode(area, StandardCharsets.UTF_8)}"
+        }
+
+        val name = StringArgumentType.getString(context, "replay")
+        val path = "$root/${URLEncoder.encode(name, StandardCharsets.UTF_8)}.mcpr"
+
+        val here = Component.literal("[here]")
+            .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD)
+            .withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, "$url/$path")) }
+        val message = Component.literal("You can download the replay ").append(here)
+        context.source.sendSystemMessage(message)
+        return 1
     }
 
     private fun addPlayerMarker(
