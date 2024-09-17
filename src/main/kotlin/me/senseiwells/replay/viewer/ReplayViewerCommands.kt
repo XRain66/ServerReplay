@@ -17,6 +17,7 @@ import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.network.chat.ChatType
 import net.minecraft.commands.arguments.TimeArgument
 import net.minecraft.network.chat.Component
+import net.minecraft.network.chat.TextComponent
 import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.ClientGamePacketListener
 import net.minecraft.network.protocol.game.ClientboundChatPacket
@@ -75,12 +76,12 @@ object ReplayViewerCommands {
                         Commands.literal("to").then(
                             Commands.literal("marker").then(
                                 Commands.literal("unnamed").then(
-                                    Commands.argument("offset", TimeArgument.time(Int.MIN_VALUE)).executes { jumpToMarker(it, name = null) }
+                                    Commands.argument("offset", TimeArgument.time()).executes { jumpToMarker(it, name = null) }
                                 ).executes { jumpToMarker(it, null, 0) }
                             ).then(
                                 Commands.literal("named").then(
                                     Commands.argument("name", StringArgumentType.string()).then(
-                                        Commands.argument("offset", TimeArgument.time(Int.MIN_VALUE)).executes(::jumpToMarker)
+                                        Commands.argument("offset", TimeArgument.time()).executes(::jumpToMarker)
                                     ).executes { jumpToMarker(it, offset = 0) }
                                 )
                             )
@@ -108,44 +109,44 @@ object ReplayViewerCommands {
         val speed = FloatArgumentType.getFloat(context, "multiplier")
         val viewer = context.source.getReplayViewer()
         viewer.setSpeed(speed)
-        context.source.sendSuccess(Component.literal("Successfully set replay speed to $speed"), false)
+        context.source.sendSuccess(TextComponent("Successfully set replay speed to $speed"), false)
         return Command.SINGLE_SUCCESS
     }
 
     private fun pauseViewingReplay(context: CommandContext<CommandSourceStack>, paused: Boolean): Int {
         val viewer = context.source.getReplayViewer()
         if (viewer.setPaused(paused)) {
-            context.source.sendSuccess(Component.literal("Successfully paused replay"), false)
+            context.source.sendSuccess(TextComponent("Successfully paused replay"), false)
             return Command.SINGLE_SUCCESS
         }
-        context.source.sendFailure(Component.literal("Replay was already paused"))
+        context.source.sendFailure(TextComponent("Replay was already paused"))
         return 0
     }
 
     private fun restartViewingReplay(context: CommandContext<CommandSourceStack>): Int {
         val viewer = context.source.getReplayViewer()
         viewer.restart()
-        context.source.sendSuccess(Component.literal("Successfully restarted replay"), false)
+        context.source.sendSuccess(TextComponent("Successfully restarted replay"), false)
         return Command.SINGLE_SUCCESS
     }
 
     private fun showReplayProgress(context: CommandContext<CommandSourceStack>): Int {
         val viewer = context.source.getReplayViewer()
         if (viewer.showProgress()) {
-            context.source.sendSuccess(Component.literal("Successfully showing replay progress bar"), false)
+            context.source.sendSuccess(TextComponent("Successfully showing replay progress bar"), false)
             return Command.SINGLE_SUCCESS
         }
-        context.source.sendFailure(Component.literal("Progress bar was already shown"))
+        context.source.sendFailure(TextComponent("Progress bar was already shown"))
         return 0
     }
 
     private fun hideReplayProgress(context: CommandContext<CommandSourceStack>): Int {
         val viewer = context.source.getReplayViewer()
         if (viewer.hideProgress()) {
-            context.source.sendSuccess(Component.literal("Successfully hidden replay progress bar"), false)
+            context.source.sendSuccess(TextComponent("Successfully hidden replay progress bar"), false)
             return Command.SINGLE_SUCCESS
         }
-        context.source.sendFailure(Component.literal("Progress bar was already hidden"))
+        context.source.sendFailure(TextComponent("Progress bar was already hidden"))
         return 0
     }
 
@@ -156,10 +157,10 @@ object ReplayViewerCommands {
     ): Int {
         val viewer = context.source.getReplayViewer()
         if (viewer.jumpToMarker(name, (offset * 50).milliseconds)) {
-            context.source.sendSuccess(Component.literal("Successfully jumped to marker") , false)
+            context.source.sendSuccess(TextComponent("Successfully jumped to marker") , false)
             return Command.SINGLE_SUCCESS
         }
-        context.source.sendFailure(Component.literal("No such marker found, or offset too large"))
+        context.source.sendFailure(TextComponent("No such marker found, or offset too large"))
         return 0
     }
 
@@ -167,10 +168,10 @@ object ReplayViewerCommands {
         val viewer = context.source.getReplayViewer()
         val time = IntegerArgumentType.getInteger(context, "time")
         if (viewer.jumpTo((time * 50).milliseconds)) {
-            context.source.sendSuccess(Component.literal("Successfully jumped to timestamp"), false)
+            context.source.sendSuccess(TextComponent("Successfully jumped to timestamp"), false)
             return Command.SINGLE_SUCCESS
         }
-        context.source.sendFailure(Component.literal("Timestamp provided was outside of recording"))
+        context.source.sendFailure(TextComponent("Timestamp provided was outside of recording"))
         return 0
     }
 
@@ -178,16 +179,16 @@ object ReplayViewerCommands {
         val viewer = context.source.getReplayViewer()
         val markers = viewer.getMarkers()
         if (markers.isEmpty()) {
-            context.source.sendSuccess(Component.literal("Replay has no markers"), false)
+            context.source.sendSuccess(TextComponent("Replay has no markers"), false)
             return 0
         }
-        val component = Component.empty()
+        val component = TextComponent("")
         val iter = viewer.getMarkers().iterator()
         for (marker in iter) {
             val time = marker.time.milliseconds.formatHHMMSS()
-            component.append(Component.literal(time).withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
+            component.append(TextComponent(time).withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
             component.append(": ")
-            component.append(Component.literal(marker.name ?: "Unnamed").withStyle(ChatFormatting.GREEN))
+            component.append(TextComponent(marker.name ?: "Unnamed").withStyle(ChatFormatting.GREEN))
             if (iter.hasNext()) {
                 component.append("\n")
             }

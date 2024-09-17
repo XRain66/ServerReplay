@@ -431,7 +431,7 @@ object ReplayCommand {
         val url = ServerReplay.getDownloadUrl()
         if (!ServerReplay.config.allowDownloadingReplays || url == null) {
             context.source.sendFailure(
-                Component.literal("Downloading replays is disabled, you must enable it in the config")
+                TextComponent("Downloading replays is disabled, you must enable it in the config")
             )
             return 0
         }
@@ -447,11 +447,11 @@ object ReplayCommand {
         val name = StringArgumentType.getString(context, "replay")
         val path = "$root/${URLEncoder.encode(name, StandardCharsets.UTF_8)}.mcpr"
 
-        val here = Component.literal("[here]")
+        val here = TextComponent("[here]")
             .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD)
             .withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, "$url/$path")) }
-        val message = Component.literal("You can download the replay ").append(here)
-        context.source.sendSystemMessage(message)
+        val message = TextComponent("You can download the replay ").append(here)
+        context.source.sendSuccess(message, false)
         return 1
     }
 
@@ -481,9 +481,9 @@ object ReplayCommand {
             recorder.addMarker(name)
         }
         if (recorders.isNotEmpty()) {
-            context.source.sendSuccess(Component.literal("Successfully marked ${recorders.size} recordings"), true)
+            context.source.sendSuccess(TextComponent("Successfully marked ${recorders.size} recordings"), true)
         } else {
-            context.source.sendFailure(Component.literal("Failed to mark any recordings"))
+            context.source.sendFailure(TextComponent("Failed to mark any recordings"))
         }
         return 1
     }
