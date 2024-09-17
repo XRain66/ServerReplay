@@ -3,17 +3,16 @@ fabric-loom          = "1.7-SNAPSHOT"
 mod-publish          = "0.7.0"
 kotlin-serialization = "1.9.21"
 shadow               = "8.1.1"
-minecraft            = "1.20.4"
+minecraft            = "1.19.4"
 fabric-loader        = "0.16.5"
-parchment            = "1.20.4:2024.04.14"
-fabric-api           = "0.95.3+1.20.4"
+parchment            = "1.19.4:2023.06.26"
+fabric-api           = "0.87.2+1.19.4"
 fabric-kotlin        = "1.9.2+kotlin.1.8.10"
 permissions          = "0.3.1"
-carpet               = "1.4.128"
-voicechat            = "fabric-1.20.4-2.5.1"
+carpet               = "1.4.101"
+voicechat            = "fabric-1.19.4-2.5.7"
 voicechat-api        = "2.4.0"
-vmp                  = "0.2.0+beta.7.139+1.20.4"
-syncmatica           = "0.3.11"
+vmp                  = "0.2.0+beta.7.73+1.19.4"
 replay-studio        = "1e96fda605"
 
 [libraries]
@@ -26,7 +25,6 @@ carpet        = { module = "com.github.gnembon:fabric-carpet"     , version.ref 
 voicechat     = { module = "maven.modrinth:simple-voice-chat"     , version.ref = "voicechat" }
 voicechat-api = { module = "de.maxhenkel.voicechat:voicechat-api" , version.ref = "voicechat-api" }
 vmp           = { module = "maven.modrinth:vmp-fabric"            , version.ref = "vmp" }
-syncmatica    = { module = "com.github.sakura:syncmatica"         , version.ref = "syncmatica" }
 replay-studio = { module = "com.github.ReplayMod:ReplayStudio"    , version.ref = "replay-studio" }
 
 [plugins]

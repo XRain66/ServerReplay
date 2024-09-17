@@ -18,7 +18,7 @@ import com.replaymod.replaystudio.protocol.Packet as ReplayPacket
 object ReplayViewerUtils {
     fun ReplayPacket.toClientboundPlayPacket(): Packet<*> {
         useByteBuf(this.buf) { buf ->
-            return CLIENTBOUND_PLAY_CODEC.createPacket(this.id, buf)
+            return ConnectionProtocol.PLAY.createPacket(PacketFlow.CLIENTBOUND, this.id, buf)
                 ?: throw IllegalStateException("Failed to create play packet with id ${this.id}")
         }
     }

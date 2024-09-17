@@ -1,6 +1,7 @@
 package me.senseiwells.replay.ducks;
 
 import net.minecraft.network.protocol.game.ClientboundResourcePackPacket;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.Nullable;
 
 @ApiStatus.Internal

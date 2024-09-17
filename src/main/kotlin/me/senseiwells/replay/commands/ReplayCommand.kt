@@ -481,7 +481,7 @@ object ReplayCommand {
             recorder.addMarker(name)
         }
         if (recorders.isNotEmpty()) {
-            context.source.sendSuccess({ Component.literal("Successfully marked ${recorders.size} recordings") }, true)
+            context.source.sendSuccess(Component.literal("Successfully marked ${recorders.size} recordings"), true)
         } else {
             context.source.sendFailure(Component.literal("Failed to mark any recordings"))
         }

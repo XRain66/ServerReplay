@@ -106,18 +106,14 @@ object ReplayViewerCommands {
         val speed = FloatArgumentType.getFloat(context, "multiplier")
         val viewer = context.source.getReplayViewer()
         viewer.setSpeed(speed)
-        context.source.sendSuccess({
-            Component.literal("Successfully set replay speed to $speed")
-        }, false)
+        context.source.sendSuccess(Component.literal("Successfully set replay speed to $speed"), false)
         return Command.SINGLE_SUCCESS
     }
 
     private fun pauseViewingReplay(context: CommandContext<CommandSourceStack>, paused: Boolean): Int {
         val viewer = context.source.getReplayViewer()
         if (viewer.setPaused(paused)) {
-            context.source.sendSuccess({
-                Component.literal("Successfully paused replay")
-            }, false)
+            context.source.sendSuccess(Component.literal("Successfully paused replay"), false)
             return Command.SINGLE_SUCCESS
         }
         context.source.sendFailure(Component.literal("Replay was already paused"))
@@ -127,18 +123,14 @@ object ReplayViewerCommands {
     private fun restartViewingReplay(context: CommandContext<CommandSourceStack>): Int {
         val viewer = context.source.getReplayViewer()
         viewer.restart()
-        context.source.sendSuccess({
-            Component.literal("Successfully restarted replay")
-        }, false)
+        context.source.sendSuccess(Component.literal("Successfully restarted replay"), false)
         return Command.SINGLE_SUCCESS
     }
 
     private fun showReplayProgress(context: CommandContext<CommandSourceStack>): Int {
         val viewer = context.source.getReplayViewer()
         if (viewer.showProgress()) {
-            context.source.sendSuccess({
-                Component.literal("Successfully showing replay progress bar")
-            }, false)
+            context.source.sendSuccess(Component.literal("Successfully showing replay progress bar"), false)
             return Command.SINGLE_SUCCESS
         }
         context.source.sendFailure(Component.literal("Progress bar was already shown"))
@@ -148,9 +140,7 @@ object ReplayViewerCommands {
     private fun hideReplayProgress(context: CommandContext<CommandSourceStack>): Int {
         val viewer = context.source.getReplayViewer()
         if (viewer.hideProgress()) {
-            context.source.sendSuccess({
-                Component.literal("Successfully hidden replay progress bar")
-            }, false)
+            context.source.sendSuccess(Component.literal("Successfully hidden replay progress bar"), false)
             return Command.SINGLE_SUCCESS
         }
         context.source.sendFailure(Component.literal("Progress bar was already hidden"))
@@ -164,9 +154,7 @@ object ReplayViewerCommands {
     ): Int {
         val viewer = context.source.getReplayViewer()
         if (viewer.jumpToMarker(name, (offset * 50).milliseconds)) {
-            context.source.sendSuccess({
-                Component.literal("Successfully jumped to marker")
-            }, false)
+            context.source.sendSuccess(Component.literal("Successfully jumped to marker") , false)
             return Command.SINGLE_SUCCESS
         }
         context.source.sendFailure(Component.literal("No such marker found, or offset too large"))
@@ -177,9 +165,7 @@ object ReplayViewerCommands {
         val viewer = context.source.getReplayViewer()
         val time = IntegerArgumentType.getInteger(context, "time")
         if (viewer.jumpTo((time * 50).milliseconds)) {
-            context.source.sendSuccess({
-                Component.literal("Successfully jumped to timestamp")
-            }, false)
+            context.source.sendSuccess(Component.literal("Successfully jumped to timestamp"), false)
             return Command.SINGLE_SUCCESS
         }
         context.source.sendFailure(Component.literal("Timestamp provided was outside of recording"))
@@ -190,7 +176,7 @@ object ReplayViewerCommands {
         val viewer = context.source.getReplayViewer()
         val markers = viewer.getMarkers()
         if (markers.isEmpty()) {
-            context.source.sendSuccess({ Component.literal("Replay has no markers") }, false)
+            context.source.sendSuccess(Component.literal("Replay has no markers"), false)
             return 0
         }
         val component = Component.empty()
@@ -204,7 +190,7 @@ object ReplayViewerCommands {
                 component.append("\n")
             }
         }
-        context.source.sendSuccess({ component }, false)
+        context.source.sendSuccess(component, false)
         return Command.SINGLE_SUCCESS
     }
 
