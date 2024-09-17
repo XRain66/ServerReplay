@@ -3,7 +3,7 @@ package me.senseiwells.replay.viewer
 import com.mojang.authlib.GameProfile
 import io.netty.buffer.ByteBuf
 import io.netty.buffer.Unpooled
-import me.senseiwells.replay.ducks.`ServerReplay$ReplayViewable`
+import me.senseiwells.replay.ducks.ReplayViewable
 import me.senseiwells.replay.mixin.viewer.ClientboundPlayerInfoUpdatePacketAccessor
 import net.minecraft.network.ConnectionProtocol
 import net.minecraft.network.FriendlyByteBuf
@@ -16,42 +16,44 @@ import com.replaymod.replaystudio.protocol.Packet as ReplayPacket
 
 object ReplayViewerUtils {
     fun ReplayPacket.toClientboundPlayPacket(): Packet<*> {
-        val buf = toFriendlyByteBuf(this.buf)
-        try {
+        useByteBuf(this.buf) { buf ->
             return ConnectionProtocol.PLAY.createPacket(PacketFlow.CLIENTBOUND, this.id, buf)
                 ?: throw IllegalStateException("Failed to create play packet with id ${this.id}")
-        } finally {
-            buf.release()
         }
     }
 
-    private fun toFriendlyByteBuf(buf: com.github.steveice10.netty.buffer.ByteBuf): FriendlyByteBuf {
+    private inline fun <T> useByteBuf(buf: com.github.steveice10.netty.buffer.ByteBuf, block: (FriendlyByteBuf) -> T): T {
         // When we compile we map steveice10.netty -> io.netty
         // We just need this check for dev environment
         @Suppress("USELESS_IS_CHECK")
         if (buf is ByteBuf) {
-            return FriendlyByteBuf(buf)
+            return block(FriendlyByteBuf(buf))
         }
 
         val array = ByteArray(buf.readableBytes())
         buf.readBytes(array)
-        return FriendlyByteBuf(Unpooled.wrappedBuffer(array))
+        val copy = FriendlyByteBuf(Unpooled.wrappedBuffer(array))
+        try {
+            return block(copy)
+        } finally {
+            copy.release()
+        }
     }
 
     fun ServerGamePacketListenerImpl.sendReplayPacket(packet: Packet<*>) {
-        (this as `ServerReplay$ReplayViewable`).`replay$sendReplayViewerPacket`(packet)
+        (this as ReplayViewable).`replay$sendReplayViewerPacket`(packet)
     }
 
     fun ServerGamePacketListenerImpl.startViewingReplay(viewer: ReplayViewer) {
-        (this as `ServerReplay$ReplayViewable`).`replay$startViewingReplay`(viewer)
+        (this as ReplayViewable).`replay$startViewingReplay`(viewer)
     }
 
     fun ServerGamePacketListenerImpl.stopViewingReplay() {
-        (this as `ServerReplay$ReplayViewable`).`replay$stopViewingReplay`()
+        (this as ReplayViewable).`replay$stopViewingReplay`()
     }
 
     fun ServerGamePacketListenerImpl.getViewingReplay(): ReplayViewer? {
-        return (this as `ServerReplay$ReplayViewable`).`replay$getViewingReplay`()
+        return (this as ReplayViewable).`replay$getViewingReplay`()
     }
 
     fun createClientboundPlayerInfoUpdatePacket(

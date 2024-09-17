@@ -14,6 +14,8 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.phys.Vec2
+import net.minecraft.world.phys.Vec3
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
@@ -43,7 +45,19 @@ class PlayerRecorder internal constructor(
      * The level that the player is currently in.
      */
     override val level: ServerLevel
-        get() = this.getPlayerOrThrow().getLevel()
+        get() = this.player?.getLevel() ?: this.server.overworld()
+
+    /**
+     * The current position of the player.
+     */
+    override val position: Vec3
+        get() = this.getPlayerOrThrow().position()
+
+    /**
+     * The current rotation of the player.
+     */
+    override val rotation: Vec2
+        get() = this.getPlayerOrThrow().rotationVector
 
     /**
      * Gets the player that's being recorded.

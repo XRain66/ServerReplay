@@ -1,7 +1,7 @@
 package me.senseiwells.replay.mixin.rejoin;
 
 import io.netty.util.concurrent.GenericFutureListener;
-import me.senseiwells.replay.ducks.ServerReplay$PackTracker;
+import me.senseiwells.replay.ducks.PackTracker;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientboundResourcePackPacket;
 import net.minecraft.server.network.ServerGamePacketListenerImpl;
@@ -13,7 +13,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ServerGamePacketListenerImpl.class)
-public class ServerGamePacketListenerImplMixin implements ServerReplay$PackTracker {
+public class ServerGamePacketListenerImplMixin implements PackTracker {
 	// We need to keep track of what pack a player has...
 	// We don't really care if the player accepts / declines them, we'll record them anyway.
 	@Unique @Nullable private ClientboundResourcePackPacket replay$pack = null;
