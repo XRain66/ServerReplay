@@ -2,6 +2,7 @@ package me.senseiwells.replay.recorder
 
 import com.google.common.hash.Hashing
 import com.mojang.authlib.GameProfile
+import com.replaymod.replaystudio.data.Marker
 import com.replaymod.replaystudio.io.ReplayOutputStream
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion
@@ -9,6 +10,7 @@ import com.replaymod.replaystudio.protocol.Packet
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry
 import com.replaymod.replaystudio.replay.ReplayMetaData
 import io.netty.buffer.Unpooled
+import io.netty.handler.codec.EncoderException
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -35,6 +37,8 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.phys.Vec2
+import net.minecraft.world.phys.Vec3
 import org.apache.commons.lang3.builder.StandardToStringStyle
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jetbrains.annotations.ApiStatus.Internal
@@ -46,6 +50,7 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
+import kotlin.collections.HashSet
 import kotlin.io.path.*
 import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
@@ -66,7 +71,7 @@ import net.minecraft.network.protocol.Packet as MinecraftPacket
  */
 abstract class ReplayRecorder(
     val server: MinecraftServer,
-    protected val profile: GameProfile,
+    val profile: GameProfile,
     private val recordings: Path
 ) {
     private val packets by lazy { Object2ObjectOpenHashMap<String, DebugPacketData>() }
@@ -125,6 +130,16 @@ abstract class ReplayRecorder(
      */
     abstract val level: ServerLevel
 
+    /**
+     * The current position of the recorder.
+     */
+    abstract val position: Vec3
+
+    /**
+     * The current rotation of the recorder.
+     */
+    abstract val rotation: Vec2
+
     init {
         this.executor = Executors.newSingleThreadExecutor()
 
@@ -172,7 +187,19 @@ abstract class ReplayRecorder(
             return
         }
 
-        val saved = this.encodePacket(outgoing)
+        val saved = try {
+            this.encodePacket(outgoing)
+        } catch (e: EncoderException) {
+            val name = outgoing.getDebugName()
+            if (!safe) {
+                val state = this.protocolAsState()
+                val message = "Failed to encode packet $name during $state, likely due to being off-thread, skipping"
+                ServerReplay.logger.error(message, e)
+            } else {
+                ServerReplay.logger.error("Failed to encode packet $name, skipping", e)
+            }
+            return
+        }
         if (ServerReplay.config.debug) {
             val type = outgoing.getDebugName()
             this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(saved.buf.readableBytes())
@@ -244,6 +271,36 @@ abstract class ReplayRecorder(
         val future = this.close(save && this.protocol == ConnectionProtocol.PLAY)
         this.onClosing(future)
         return future
+    }
+
+    /**
+     * Adds a marker to the replay file which can be viewed in ReplayMod.
+     *
+     * @param name The name of the marker, null for unnamed.
+     * @param position The marked position.
+     * @param rotation The marked rotation.
+     * @param time The timestamp of the marker (milliseconds).
+     */
+    @JvmOverloads
+    fun addMarker(
+        name: String? = null,
+        position: Vec3 = this.position,
+        rotation: Vec2 = this.rotation,
+        time: Int = this.getTimestamp().toInt()
+    ) {
+        val marker = Marker()
+        marker.time = time
+        marker.name = name
+        marker.x = position.x
+        marker.y = position.y
+        marker.z = position.z
+        marker.pitch = rotation.x
+        marker.yaw = rotation.y
+        this.executor.execute {
+            val markers = this.replay.markers.or(::HashSet)
+            markers.add(marker)
+            this.replay.writeMarkers(markers)
+        }
     }
 
     /**
@@ -394,7 +451,7 @@ abstract class ReplayRecorder(
      */
     protected open fun addMetadata(map: MutableMap<String, JsonElement>) {
         map["name"] = JsonPrimitive(this.getName())
-        map["settings"] = ReplayConfig.toJson(ServerReplay.config.copy(replayViewerPackIp = "hidden"))
+        map["settings"] = ReplayConfig.toJson(ServerReplay.config.copy(replayServerIp = "hidden"))
         map["location"] = JsonPrimitive(this.location.pathString)
         map["time"] = JsonPrimitive(System.currentTimeMillis())
 

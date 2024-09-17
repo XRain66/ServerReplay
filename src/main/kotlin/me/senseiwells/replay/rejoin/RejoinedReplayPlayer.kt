@@ -1,7 +1,7 @@
 package me.senseiwells.replay.rejoin
 
 import me.senseiwells.replay.mixin.common.PlayerListAccessor
-import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
+import me.senseiwells.replay.ducks.PackTracker
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.viewer.ReplayViewerUtils
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
@@ -28,7 +28,7 @@ class RejoinedReplayPlayer private constructor(
     private fun sendResourcePacks() {
         val connection = this.original.connection
         // Our connection may be null if we're using a fake player
-        if (connection is `ServerReplay$PackTracker`) {
+        if (connection is PackTracker) {
             val packet = connection.`replay$getPack`() ?: return
             this.recorder.record(packet)
         } else {

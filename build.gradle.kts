@@ -1,12 +1,13 @@
-import org.apache.commons.io.output.ByteArrayOutputStream
-import java.nio.charset.Charset
-
 plugins {
-    kotlin("jvm")
-    kotlin("plugin.serialization") version "2.0.0"
-    id("me.modmuss50.mod-publish-plugin") version "0.4.5"
-    id("com.github.johnrengelman.shadow") version "8.1.1"
-    id("fabric-loom")
+    val jvmVersion = libs.versions.fabric.kotlin.get()
+        .split("+kotlin.")[1]
+        .split("+")[0]
+
+    kotlin("jvm").version(jvmVersion)
+    alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.fabric.loom)
+    alias(libs.plugins.mod.publish)
+    alias(libs.plugins.shadow)
     `maven-publish`
     java
 }
@@ -23,56 +24,33 @@ repositories {
     mavenCentral()
 }
 
-val modVersion: String by project
-val mcVersion: String by project
-val parchmentVersion: String by project
-val loaderVersion: String by project
-val fabricVersion: String by project
-val fabricKotlinVersion: String by project
 
-val carpetVersion: String by project
-val voicechatVersion: String by project
-val voicechatApiVersion: String by project
-val vmpVersion: String by project
-val permissionsVersion: String by project
-
-val releaseVersion = "${modVersion}+mc${mcVersion}"
+val modVersion = "1.1.3"
+val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
 
 dependencies {
-    minecraft("com.mojang:minecraft:${mcVersion}")
+    minecraft(libs.minecraft)
     @Suppress("UnstableApiUsage")
     mappings(loom.layered {
         officialMojangMappings()
-        parchment("org.parchmentmc.data:parchment-${parchmentVersion}@zip")
+        parchment("org.parchmentmc.data:parchment-${libs.versions.parchment.get()}@zip")
     })
 
-    modImplementation("net.fabricmc:fabric-loader:${loaderVersion}")
-    modImplementation("net.fabricmc:fabric-language-kotlin:${fabricKotlinVersion}")
-    modImplementation("net.fabricmc.fabric-api:fabric-api:${fabricVersion}")
+    modImplementation(libs.fabric.loader)
+    modImplementation(libs.fabric.api)
+    modImplementation(libs.fabric.kotlin)
 
-    modImplementation("com.github.gnembon:fabric-carpet:${carpetVersion}")
-    modCompileOnly("maven.modrinth:simple-voice-chat:fabric-${voicechatVersion}")
-    implementation("de.maxhenkel.voicechat:voicechat-api:${voicechatApiVersion}")
+    modCompileOnly(libs.carpet)
+    modCompileOnly(libs.vmp)
+    modCompileOnly(libs.voicechat)
+    implementation(libs.voicechat.api)
 
-    modCompileOnly("maven.modrinth:vmp-fabric:${vmpVersion}")
-
-    // I've had some issues with ReplayStudio and slf4j (in dev env)
-    // Simplest workaround that I've found is just to unzip the
-    // jar and yeet the org.slf4j packages then rezip the jar.
-    shade(modImplementation("com.github.ReplayMod:ReplayStudio:1e96fda605") {
-        exclude(group = "org.slf4j")
-        exclude(group = "it.unimi.dsi")
-        exclude(group = "org.apache.commons")
-        exclude(group = "commons-cli")
-        exclude(group = "com.google.guava", module = "guava-jdk5")
-        exclude(group = "com.google.guava", module = "guava")
-        exclude(group = "com.google.code.gson", module = "gson")
-    })
-    include(modImplementation("me.lucko:fabric-permissions-api:${permissionsVersion}") {
-        exclude("net.fabricmc.fabric-api")
-    })
+    shade(modImplementation(libs.replay.studio.get())!!)
+    includeModImplementation(libs.permissions) {
+        exclude(libs.fabric.api.get().group)
+    }
 }
 
 loom {
@@ -80,7 +58,7 @@ loom {
 
     runs {
         getByName("server") {
-            runDir = "run/$mcVersion"
+            runDir = "run/${libs.versions.minecraft.get()}"
         }
 
         getByName("client") {
@@ -89,11 +67,11 @@ loom {
     }
 }
 
+java {
+    withSourcesJar()
+}
+
 tasks {
-    register("relocateResources") {
-
-    }
-
     processResources {
         inputs.property("version", modVersion)
         filesMatching("fabric.mod.json") {
@@ -116,6 +94,12 @@ tasks {
 
         relocate("com.github.steveice10.netty", "io.netty")
         exclude("com/github/steveice10/netty/**")
+
+        exclude("it/unimi/dsi/**")
+        exclude("org/apache/commons/**")
+        exclude("org/xbill/DNS/**")
+        exclude("com/google/**")
+
         configurations = listOf(shade)
 
         archiveClassifier = "shaded"
@@ -134,13 +118,13 @@ tasks {
         type = STABLE
         modLoaders.add("fabric")
 
-        displayName = "ServerReplay $modVersion for $mcVersion"
+        displayName = "ServerReplay $modVersion for ${libs.versions.minecraft.get()}"
         version = releaseVersion
 
         modrinth {
             accessToken = providers.environmentVariable("MODRINTH_API_KEY")
             projectId = "qCvSZ8ra"
-            minecraftVersions.add(mcVersion)
+            minecraftVersions.add(libs.versions.minecraft)
 
             requires {
                 id = "P7dR8mSH"
@@ -153,40 +137,49 @@ tasks {
             }
         }
     }
+}
 
-    publishing {
-        publications {
-            create<MavenPublication>("mavenJava") {
-                groupId = "com.github.senseiwells"
-                artifactId = "ServerReplay"
-                version = getGitHash()
-                from(project.components.getByName("java"))
+publishing {
+    publications {
+        create<MavenPublication>("ServerReplay") {
+            groupId = "me.senseiwells"
+            artifactId = "server-replay"
+            version = "${modVersion}+${libs.versions.minecraft.get()}"
+            from(components["java"])
+
+            updateReadme("./README.md")
+        }
+    }
+
+    repositories {
+        val mavenUrl = System.getenv("MAVEN_URL")
+        if (mavenUrl != null) {
+            maven {
+                url = uri(mavenUrl)
+                val mavenUsername = System.getenv("MAVEN_USERNAME")
+                val mavenPassword = System.getenv("MAVEN_PASSWORD")
+                if (mavenUsername != null && mavenPassword != null) {
+                    credentials {
+                        username = mavenUsername
+                        password = mavenPassword
+                    }
+                }
             }
         }
     }
-
-    register("updateReadme") {
-        val readmes = listOf("./README.md")
-        val regex = Regex("""com.github.Senseiwells:ServerReplay:[a-z0-9]+""")
-        val replacement = "com.github.Senseiwells:ServerReplay:${getGitHash()}"
-        for (path in readmes) {
-            val readme = file(path)
-            readme.writeText(readme.readText().replace(regex, replacement))
-        }
-
-        println("Successfully updated all READMEs")
-    }
 }
 
-java {
-    withSourcesJar()
+private fun DependencyHandler.includeModImplementation(provider: Provider<*>, action: Action<ExternalModuleDependency>) {
+    include(provider, action)
+    modImplementation(provider, action)
 }
 
-fun getGitHash(): String {
-    val out = ByteArrayOutputStream()
-    exec {
-        commandLine("git", "rev-parse", "--short=10", "HEAD")
-        standardOutput = out
+private fun MavenPublication.updateReadme(vararg readmes: String) {
+    val location = "${groupId}:${artifactId}"
+    val regex = Regex("""${Regex.escape(location)}:[\d\.\-a-zA-Z+]+""")
+    val locationWithVersion = "${location}:${version}"
+    for (path in readmes) {
+        val readme = file(path)
+        readme.writeText(readme.readText().replace(regex, locationWithVersion))
     }
-    return out.toString(Charset.defaultCharset()).trim()
 }

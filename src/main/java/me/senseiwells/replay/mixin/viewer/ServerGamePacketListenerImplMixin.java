@@ -1,6 +1,6 @@
 package me.senseiwells.replay.mixin.viewer;
 
-import me.senseiwells.replay.ducks.ServerReplay$ReplayViewable;
+import me.senseiwells.replay.ducks.ReplayViewable;
 import me.senseiwells.replay.viewer.ReplayViewer;
 import me.senseiwells.replay.viewer.ReplayViewerPackets;
 import net.minecraft.network.PacketSendListener;
@@ -18,7 +18,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ServerGamePacketListenerImpl.class)
-public abstract class ServerGamePacketListenerImplMixin implements ServerReplay$ReplayViewable {
+public abstract class ServerGamePacketListenerImplMixin implements ReplayViewable {
 	@Unique
 	private static final PacketSendListener BYPASS = new PacketSendListener() {};
 

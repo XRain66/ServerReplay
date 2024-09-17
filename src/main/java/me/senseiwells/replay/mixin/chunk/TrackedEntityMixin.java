@@ -2,7 +2,7 @@ package me.senseiwells.replay.mixin.chunk;
 
 import me.senseiwells.replay.chunk.ChunkRecorder;
 import me.senseiwells.replay.chunk.ChunkRecorders;
-import me.senseiwells.replay.ducks.ServerReplay$ChunkRecordable;
+import me.senseiwells.replay.ducks.ChunkRecordable;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.game.ClientGamePacketListener;
 import net.minecraft.network.protocol.game.ClientboundBundlePacket;
@@ -25,7 +25,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.*;
 
 @Mixin(ChunkMap.TrackedEntity.class)
-public class TrackedEntityMixin implements ServerReplay$ChunkRecordable {
+public class TrackedEntityMixin implements ChunkRecordable {
 	@Unique private final Set<ChunkRecorder> replay$chunks = new HashSet<>();
 
 	@Shadow @Final Entity entity;
