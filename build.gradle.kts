@@ -108,8 +108,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Fixed an issue with `/replay view`
-            - Added the ability to change the player's recording directory name
+            - Fixed an issue that caused players to not be able to join when auto recording
             """.trimIndent()
         )
         type = STABLE
