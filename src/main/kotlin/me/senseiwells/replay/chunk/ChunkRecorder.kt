@@ -12,10 +12,8 @@ import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ChunkSender.WrappedTrackedEntity
 import me.senseiwells.replay.recorder.ReplayRecorder
-import me.senseiwells.replay.rejoin.RejoinConnection
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import me.senseiwells.replay.util.ClientboundAddEntityPacket
-import net.fabricmc.fabric.impl.event.interaction.FakePlayerNetworkHandler
 import net.minecraft.core.UUIDUtil
 import net.minecraft.network.chat.Component
 import net.minecraft.network.protocol.Packet
@@ -24,8 +22,6 @@ import net.minecraft.network.protocol.game.ClientboundSetEntityDataPacket
 import net.minecraft.server.level.ClientInformation
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
-import net.minecraft.server.network.CommonListenerCookie
-import net.minecraft.server.network.ServerGamePacketListenerImpl
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.boss.wither.WitherBoss
 import net.minecraft.world.level.ChunkPos
