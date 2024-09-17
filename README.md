@@ -156,6 +156,19 @@ You will only have access to a limited set of commands when viewing replays, the
 
 If you disconnect while watching a replay, you will be brought back to the server when you login.
 
+#### Downloading
+
+You can download any replay from the server if `"allow_downloading_replays"` is enabled in the config
+and the server-ip and downloading port is set up correctly.
+
+You can use the `/replay download` command to retrieve the URL to download the specified replay, for example:
+```
+/replay download players d4fca8c4-e083-4300-9a73-bf438847861c "2024-05-11--19-19-55"
+/replay download chunks "Chunks (183, 166) to (203, 186)" "2024-05-11--19-19-55"
+```
+
+This will send you a chat message; you can click on the link provided which will download the file.
+
 ### Commands
 
 A note for all commands; players must either have op (level 4), alternatively if you
@@ -217,8 +230,10 @@ After you boot the server a new file will be generated in the path
   "optimize_explosion_packets": true,
   "optimize_entity_packets": false,
   "record_voice_chat": false,
-  "replay_viewer_pack_ip": null,
+  "replay_server_ip": null,
   "replay_viewer_pack_port": 24464,
+  "replay_download_port": 25585,
+  "allow_downloading_replays": false,
   "player_predicate": {
     "type": "none"
   },
@@ -252,8 +267,10 @@ After you boot the server a new file will be generated in the path
 | `"ignore_scoreboard_packets"`    | <p> Stops scoreboard packets from being recorded (for example, if you have a scoreboard displaying digs then this will not appear, and player's scores will also not be recorded). </p>                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `"optimize_explosion_packets"`   | <p> This reduces the file size greatly by not sending the client explosion packets instead just sending the explosion particles and sounds. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `"optimize_entity_packets"`      | <p> This reduces the file size by letting the client handle the logic for some entities, e.g. projectiles and tnt. This may cause some inconsistencies however it will likely be negligible. </p>                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `"replay_viewer_pack_ip"`        | <p> This is required if your server uses custom server-side resource packs and you want to be able to view these packs in the server-side replay viewer. </p> <p> This should contain the public ip address of your server. This also requires `"replay_viewer_pack_port"`. </p>                                                                                                                                                                                                                                                                                                                    |
-| `"replay_viewer_pack_port"`      | <p> This requires `"replay_viewer_pack_ip"`. This is the port you wish to host your server-side resource packs on, you must ensure that the port is open. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `"replay_server_ip"`             | <p> This is required if your server uses custom server-side resource packs and you want to be able to view these packs in the server-side replay viewer. This is also required if you want to allow users to download replays. </p> <p> This should contain the public ip address of your server. This also requires `"replay_viewer_pack_port"` or `"replay_download_port"`. </p>                                                                                                                                                                                                                  |
+| `"replay_viewer_pack_port"`      | <p> This requires `"replay_server_ip"`. This is the port you wish to host your server-side resource packs on, you must ensure that the port is open. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `"replay_download_port"`         | <p> This requires `"replay_server_ip"`. This is the port you wish to host recorded your `mcpr` replays on, you must ensure that the port is open. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `"allow_downloading_replays"`    | <p> Determines whether users will be able to download recorded replays. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `"record_voice_chat"`            | <p> This enables support for recording voice-chat if you have the [simple-voice-chat](https://github.com/henkelmax/simple-voice-chat) mod installed, when watching back the replay you must have [replay-voice-chat](https://github.com/henkelmax/replay-voice-chat) installed. </p>                                                                                                                                                                                                                                                                                                                |
 | `"player_predicate"`             | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates-config) section. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `"chunks"`                       | <p> The list of chunks to automatically record when the server starts, more information in the [Chunks](#chunks-config) section. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
