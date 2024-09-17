@@ -8,6 +8,7 @@ import net.minecraft.server.level.*;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -25,14 +26,12 @@ import java.util.concurrent.Executor;
 import static net.minecraft.server.level.ChunkHolder.UNLOADED_LEVEL_CHUNK;
 
 @Mixin(ChunkHolder.class)
-public abstract class ChunkHolderMixin extends GenerationChunkHolder implements ChunkRecordable {
+public abstract class ChunkHolderMixin implements ChunkRecordable {
 	@Unique private final Set<ChunkRecorder> replay$recorders = new HashSet<>();
 
-	public ChunkHolderMixin(ChunkPos pos) {
-		super(pos);
-	}
-
 	@Shadow public abstract CompletableFuture<ChunkResult<LevelChunk>> getFullChunkFuture();
+
+	@Shadow @Final private ChunkPos pos;
 
 	@Inject(
 		method = "broadcast",
