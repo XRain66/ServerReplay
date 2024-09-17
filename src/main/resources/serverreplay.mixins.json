@@ -16,6 +16,8 @@
     "common.ChunkMapMixin",
     "common.MinecraftServerMixin",
     "common.ServerLevelMixin",
+    "compat.c2me.ChunkHolderMixin",
+    "compat.c2me.TheChunkSystemMixin",
     "compat.carpet.ChunkMapMixin",
     "compat.carpet.EntityPlayerMPFakeMixin",
     "compat.carpet.NetHandlerPlayServerFakeMixin",

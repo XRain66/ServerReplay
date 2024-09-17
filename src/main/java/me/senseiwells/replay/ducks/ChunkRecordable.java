@@ -1,12 +1,13 @@
 package me.senseiwells.replay.ducks;
 
-import me.senseiwells.replay.chunk.ChunkRecordable;
 import me.senseiwells.replay.chunk.ChunkRecorder;
+import org.jetbrains.annotations.ApiStatus;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Collection;
 
-public interface ServerReplay$ChunkRecordable extends ChunkRecordable {
+@ApiStatus.Internal
+public interface ChunkRecordable extends me.senseiwells.replay.chunk.ChunkRecordable {
 	@NotNull
 	@Override
 	default Collection<ChunkRecorder> getRecorders() {

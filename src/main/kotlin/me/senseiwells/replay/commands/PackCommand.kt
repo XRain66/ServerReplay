@@ -6,7 +6,7 @@ import com.mojang.brigadier.arguments.StringArgumentType
 import com.mojang.brigadier.context.CommandContext
 import com.mojang.brigadier.suggestion.Suggestions
 import com.mojang.brigadier.suggestion.SuggestionsBuilder
-import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
+import me.senseiwells.replay.ducks.PackTracker
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
@@ -66,7 +66,7 @@ object PackCommand {
         builder: SuggestionsBuilder
     ): CompletableFuture<Suggestions> {
         val player = context.source.player ?: return Suggestions.empty()
-        val packs = (player.connection as `ServerReplay$PackTracker`).`replay$getPacks`()
+        val packs = (player.connection as PackTracker).`replay$getPacks`()
         return SharedSuggestionProvider.suggest(packs.map { it.id.toString() }, builder)
     }
 }

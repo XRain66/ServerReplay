@@ -19,7 +19,7 @@ import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import kotlinx.coroutines.*
 import kotlinx.coroutines.future.await
 import me.senseiwells.replay.ServerReplay
-import me.senseiwells.replay.ducks.`ServerReplay$PackTracker`
+import me.senseiwells.replay.ducks.PackTracker
 import me.senseiwells.replay.mixin.viewer.EntityInvoker
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
 import me.senseiwells.replay.util.DateTimeUtils.formatHHMMSS
@@ -443,7 +443,7 @@ class ReplayViewer(
             }
         }
 
-        this.previousPacks.addAll((this.connection as `ServerReplay$PackTracker`).`replay$getPacks`())
+        this.previousPacks.addAll((this.connection as PackTracker).`replay$getPacks`())
         this.send(ClientboundResourcePackPopPacket(Optional.empty()))
     }
 
