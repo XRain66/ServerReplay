@@ -14,7 +14,7 @@ class ChunkGamePacketPacketListener(
     recorder.server,
     RejoinConnection(),
     player,
-    CommonListenerCookie.createInitial(recorder.profile, false)
+    CommonListenerCookie.createInitial(recorder.profile)
 ) {
     override fun send(packet: Packet<*>, listener: PacketSendListener?) {
         this.recorder.record(packet)

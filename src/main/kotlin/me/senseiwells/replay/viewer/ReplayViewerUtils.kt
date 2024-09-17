@@ -23,24 +23,18 @@ object ReplayViewerUtils {
     private val CLIENTBOUND_CONFIG_CODEC = ConnectionProtocol.CONFIGURATION.codec(PacketFlow.CLIENTBOUND)
 
     fun ReplayPacket.toClientboundPlayPacket(): Packet<*> {
-        val buf = toFriendlyByteBuf(this.buf)
-        try {
+        useByteBuf(this.buf) { buf ->
             val decoded = CLIENTBOUND_PLAY_CODEC.createPacket(this.id, buf)
                 ?: throw IllegalStateException("Failed to create play packet with id ${this.id}")
             return fixFabricCustomPayloadPacket(decoded)
-        } finally {
-            buf.release()
         }
     }
 
     fun ReplayPacket.toClientboundConfigurationPacket(): Packet<*> {
-        val buf = toFriendlyByteBuf(this.buf)
-        try {
+        useByteBuf(this.buf) { buf ->
             val decoded = CLIENTBOUND_CONFIG_CODEC.createPacket(this.id, buf)
                 ?: throw IllegalStateException("Failed to create configuration packet with id ${this.id}")
             return fixFabricCustomPayloadPacket(decoded)
-        } finally {
-            buf.release()
         }
     }
 
@@ -55,17 +49,22 @@ object ReplayViewerUtils {
         return packet
     }
 
-    private fun toFriendlyByteBuf(buf: com.github.steveice10.netty.buffer.ByteBuf): FriendlyByteBuf {
+    private inline fun <T> useByteBuf(buf: com.github.steveice10.netty.buffer.ByteBuf, block: (FriendlyByteBuf) -> T): T {
         // When we compile we map steveice10.netty -> io.netty
         // We just need this check for dev environment
         @Suppress("USELESS_IS_CHECK")
         if (buf is ByteBuf) {
-            return FriendlyByteBuf(buf)
+            return block(FriendlyByteBuf(buf))
         }
 
         val array = ByteArray(buf.readableBytes())
         buf.readBytes(array)
-        return FriendlyByteBuf(Unpooled.wrappedBuffer(array))
+        val copy = FriendlyByteBuf(Unpooled.wrappedBuffer(array))
+        try {
+            return block(copy)
+        } finally {
+            copy.release()
+        }
     }
 
     fun ServerGamePacketListenerImpl.sendReplayPacket(packet: Packet<*>) {

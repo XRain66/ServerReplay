@@ -15,6 +15,7 @@ plugins {
 val shade: Configuration by configurations.creating
 
 repositories {
+    mavenLocal()
     maven("https://maven.parchmentmc.org/")
     maven("https://masa.dy.fi/maven")
     maven("https://jitpack.io")
@@ -45,7 +46,6 @@ dependencies {
 
     modCompileOnly(libs.carpet)
     modCompileOnly(libs.vmp)
-    modCompileOnly(libs.servux)
     modCompileOnly(libs.syncmatica)
     modCompileOnly(libs.voicechat)
     implementation(libs.voicechat.api)

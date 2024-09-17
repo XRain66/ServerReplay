@@ -45,7 +45,7 @@ object PackCommand {
         uuid: UUID = UuidArgument.getUuid(context, "uuid")
     ): Int {
         val url = StringArgumentType.getString(context, "url")
-        val packet = ClientboundResourcePackPushPacket(uuid, url, "", false, Optional.empty())
+        val packet = ClientboundResourcePackPushPacket(uuid, url, "", false, null)
         for (player in context.source.server.playerList.players) {
             player.connection.send(packet)
         }

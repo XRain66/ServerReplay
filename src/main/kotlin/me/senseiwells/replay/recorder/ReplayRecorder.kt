@@ -916,7 +916,7 @@ abstract class ReplayRecorder(
             return if (this is ClientboundCustomPayloadPacket) {
                 "CustomPayload(${this.payload.id()})"
             } else {
-                this.type().id.toString()
+                this::class.java.simpleName
             }
         }
     }
