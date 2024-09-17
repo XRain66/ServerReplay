@@ -8,7 +8,6 @@ plugins {
     alias(libs.plugins.fabric.loom)
     alias(libs.plugins.mod.publish)
     alias(libs.plugins.shadow)
-    alias(libs.plugins.explosion)
     `maven-publish`
     java
 }
@@ -27,7 +26,7 @@ repositories {
 }
 
 
-val modVersion = "1.1.2"
+val modVersion = "1.1.3"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -46,7 +45,6 @@ dependencies {
 
     modCompileOnly(libs.carpet)
     modCompileOnly(libs.vmp)
-    modCompileOnly(explosion.fabric(libs.c2me))
     modCompileOnly(libs.servux)
     modCompileOnly(libs.syncmatica)
     modCompileOnly(libs.voicechat)
