@@ -3,13 +3,15 @@ package me.senseiwells.replay.mixin.chunk;
 import com.llamalad7.mixinextras.injector.ModifyExpressionValue;
 import com.mojang.datafixers.util.Either;
 import me.senseiwells.replay.chunk.ChunkRecorder;
-import me.senseiwells.replay.ducks.ServerReplay$ChunkRecordable;
+import me.senseiwells.replay.ducks.ChunkRecordable;
 import net.minecraft.network.protocol.Packet;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -24,10 +26,12 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 
 @Mixin(ChunkHolder.class)
-public abstract class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
+public abstract class ChunkHolderMixin implements ChunkRecordable {
 	@Shadow private volatile CompletableFuture<Either<LevelChunk, ChunkHolder.ChunkLoadingFailure>> fullChunkFuture;
 
 	@Unique private final Set<ChunkRecorder> replay$recorders = new HashSet<>();
+
+    @Shadow @Final ChunkPos pos;
 
 	@Shadow public abstract @Nullable LevelChunk getFullChunk();
 
@@ -72,7 +76,7 @@ public abstract class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
 		LevelChunk chunk = this.getFullChunk();
 		if (chunk != null) {
 			for (ChunkRecorder recorder : this.getRecorders()) {
-				recorder.onChunkUnloaded(chunk);
+				recorder.onChunkUnloaded(this.pos);
 			}
 		}
 	}
@@ -98,7 +102,7 @@ public abstract class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
 		if (this.replay$recorders.remove(recorder)) {
 			LevelChunk chunk = this.getFullChunk();
 			if (chunk != null) {
-				recorder.onChunkUnloaded(chunk);
+				recorder.onChunkUnloaded(this.pos);
 			}
 
 			recorder.removeRecordable(this);
@@ -110,7 +114,7 @@ public abstract class ChunkHolderMixin implements ServerReplay$ChunkRecordable {
 		LevelChunk chunk = this.getFullChunk();
 		for (ChunkRecorder recorder : this.replay$recorders) {
 			if (chunk != null) {
-				recorder.onChunkUnloaded(chunk);
+				recorder.onChunkUnloaded(this.pos);
 			}
 			recorder.removeRecordable(this);
 		}

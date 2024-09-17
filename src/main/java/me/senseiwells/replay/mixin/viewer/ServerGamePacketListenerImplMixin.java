@@ -2,7 +2,7 @@ package me.senseiwells.replay.mixin.viewer;
 
 import io.netty.util.concurrent.Future;
 import io.netty.util.concurrent.GenericFutureListener;
-import me.senseiwells.replay.ducks.ServerReplay$ReplayViewable;
+import me.senseiwells.replay.ducks.ReplayViewable;
 import me.senseiwells.replay.viewer.ReplayViewer;
 import me.senseiwells.replay.viewer.ReplayViewerPackets;
 import net.minecraft.network.protocol.Packet;
@@ -17,7 +17,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(ServerGamePacketListenerImpl.class)
-public abstract class ServerGamePacketListenerImplMixin implements ServerReplay$ReplayViewable {
+public abstract class ServerGamePacketListenerImplMixin implements ReplayViewable {
 	@Unique
 	private static final GenericFutureListener<? extends Future<? super Void>> BYPASS = future -> { };
 
