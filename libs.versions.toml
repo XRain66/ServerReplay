@@ -13,6 +13,7 @@ carpet               = "1.4.147"
 voicechat            = "fabric-1.21.1-2.5.20"
 voicechat-api        = "2.5.0"
 vmp                  = "0.2.0+beta.7.162+1.21"
+servux               = "1.21-0.3.8-sakura.1"
 syncmatica           = "1.21-sakura.6"
 replay-studio        = "1e96fda605"
 
@@ -26,6 +27,7 @@ carpet        = { module = "com.github.gnembon:fabric-carpet"     , version.ref 
 voicechat     = { module = "maven.modrinth:simple-voice-chat"     , version.ref = "voicechat" }
 voicechat-api = { module = "de.maxhenkel.voicechat:voicechat-api" , version.ref = "voicechat-api" }
 vmp           = { module = "maven.modrinth:vmp-fabric"            , version.ref = "vmp" }
+servux        = { module = "com.github.sakura-ryoko:servux"       , version.ref = "servux" }
 syncmatica    = { module = "com.github.sakura-ryoko:syncmatica"   , version.ref = "syncmatica" }
 replay-studio = { module = "com.github.ReplayMod:ReplayStudio"    , version.ref = "replay-studio" }
 
