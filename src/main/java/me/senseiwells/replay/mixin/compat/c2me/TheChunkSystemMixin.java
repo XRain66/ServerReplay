@@ -31,46 +31,6 @@ public abstract class TheChunkSystemMixin extends DaemonizedStatusAdvancingSched
         super(threadFactory);
     }
 
-//    @ModifyExpressionValue(
-//        method = "vanillaIf$setLevel",
-//        at = @At(
-//            value = "INVOKE",
-//            target = "Lcom/ishland/c2me/rewrites/chunksystem/common/TheChunkSystem;addTicket(Ljava/lang/Object;Lcom/ishland/flowsched/scheduler/ItemTicket$TicketType;Ljava/lang/Object;Lcom/ishland/flowsched/scheduler/ItemStatus;Ljava/lang/Runnable;)Lcom/ishland/flowsched/scheduler/ItemHolder;"
-//        )
-//    )
-//    private ItemHolder<ChunkPos, ChunkState, ChunkLoadingContext, NewChunkHolderVanillaInterface> onLoadChunk(
-//        ItemHolder<ChunkPos, ChunkState, ChunkLoadingContext, NewChunkHolderVanillaInterface> original,
-//        @Local(ordinal = 0) NewChunkStatus oldStatus
-//    ) {
-//        if (oldStatus == this.getUnloadedStatus()) {
-//            ChunkHolder holder = original.getUserData().get();
-//            ServerLevel level = ((ChunkMapAccessor) this.tacs).getLevel();
-//            for (ChunkRecorder recorder : ChunkRecorders.containing(level.dimension(), original.getKey())) {
-//                ((ChunkRecordable) holder).addRecorder(recorder);
-//            }
-//        }
-//        return original;
-//    }
-//
-//    @Inject(
-//        method = "vanillaIf$setLevel",
-//        at = @At(
-//            value = "INVOKE",
-//            target = "Lit/unimi/dsi/fastutil/longs/Long2IntMap;remove(J)I"
-//        )
-//    )
-//    private void onUnloadChunk(
-//        long pos,
-//        int level,
-//        CallbackInfoReturnable<ChunkHolder> cir,
-//        @Local ChunkPos key
-//    ) {
-//        if (this.managedTickets.containsKey(pos)) {
-//            ItemHolder<ChunkPos, ChunkState, ChunkLoadingContext, NewChunkHolderVanillaInterface> item = this.getHolder(key);
-//            ((ChunkRecordable) item.getUserData().get()).removeAllRecorders();
-//        }
-//    }
-
     @Inject(
         method = "onItemUpgrade",
         at = @At("HEAD")
