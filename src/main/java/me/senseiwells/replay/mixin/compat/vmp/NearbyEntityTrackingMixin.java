@@ -21,10 +21,9 @@ public class NearbyEntityTrackingMixin {
     @Inject(
         method = "tick",
         at = @At(
-            value = "INVOKE_ASSIGN",
+            value = "INVOKE",
             target = "Lcom/ishland/vmp/common/playerwatching/ServerPlayerEntityExtension;vmpTracking$updatePosition()V"
-        ),
-        remap = false
+        )
     )
     private void onPlayerTrackingTick(
         CallbackInfo ci,
