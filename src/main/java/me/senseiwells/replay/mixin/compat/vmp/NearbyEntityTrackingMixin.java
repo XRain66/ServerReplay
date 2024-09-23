@@ -27,8 +27,8 @@ public class NearbyEntityTrackingMixin {
     )
     private void onPlayerTrackingTick(
         CallbackInfo ci,
-        @Local(name = "entry") Map.Entry<ServerPlayer, ReferenceLinkedOpenHashSet<ChunkMap.TrackedEntity>> entry,
-        @Local(name = "isPlayerPositionUpdated") boolean positionUpdated
+        @Local Map.Entry<ServerPlayer, ReferenceLinkedOpenHashSet<ChunkMap.TrackedEntity>> entry,
+        @Local boolean positionUpdated
     ) {
         if (positionUpdated) {
             ServerPlayer player = entry.getKey();
