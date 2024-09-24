@@ -22,6 +22,7 @@
     "compat.servux.ServuxPacketMixin",
     "compat.syncmatica.SyncmaticaPacketPayloadMixin",
     "compat.vmp.NearbyEntityTrackingMixin",
+    "compat.vmp.TrackedEntityMixin",
     "network.IdDispatchCodecAccessor",
     "player.ServerCommonPacketListenerImplMixin",
     "player.ServerConfigurationPacketListenerImplMixin",
