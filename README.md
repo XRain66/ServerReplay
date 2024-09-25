@@ -223,6 +223,7 @@ After you boot the server a new file will be generated in the path
   "pause_notify_players": true,
   "notify_admins_of_status": true,
   "fix_carpet_bot_view_distance": false,
+  "include_resource_packs": true,
   "ignore_sound_packets": false,
   "ignore_light_packets": true,
   "ignore_chat_packets": false,
@@ -261,6 +262,7 @@ After you boot the server a new file will be generated in the path
 | `"pause_notify_players"`         | <p> If `pause_unloaded_chunks` is enabled and this is enabled then when the recording for the chunk area is paused or resumed all online players will be notified. </p>                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `"notify_admins_of_status"`      | <p> When enabled this will notify admins of when a replay starts, when a replay ends, and when a replay has finished saving, as well as any errors that occur. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `"fix_carpet_bot_view_distance"` | <p> If you are recording carpet bots you want to enable this as it sets the view distance to the server view distance. Otherwise it will only record a distance of 2 chunks around the bot. </p>                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `"include_resource_packs"`       | <p> If enabled all server-side resource packs will be copied in the replay file to ensure correct playback. Disabling this will decrease file size but instead it'll try to download the pack from the original source whenever viewing the replay, there is no guarantee that this will work correctly. </p>                                                                                                                                                                                                                                                                                       |
 | `"ignore_sound_packets"`         | <p> If you are recording a large area for a timelapse it's unlikely you'll want to record any sounds, these can eat up significant storage space. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `"ignore_light_packets"`         | <p> Light is calculated on the client as well as on the server so light packets are mostly redundant. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `"ignore_chat_packets"`          | <p> Stops chat packets (from both the server and other players) from being recorded if they are not necessary for your replay. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
@@ -450,7 +452,7 @@ repositories {
 }
 
 dependencies {
-    modImplementation("me.senseiwells:server-replay:1.1.3+1.17.1")
+    modImplementation("me.senseiwells:server-replay:1.1.5+1.17.1")
 }
 ```
 
