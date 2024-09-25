@@ -73,6 +73,8 @@ data class ReplayConfig(
     var notifyAdminsOfStatus: Boolean = true,
     @SerialName("fix_carpet_bot_view_distance")
     var fixCarpetBotViewDistance: Boolean = false,
+    @SerialName("include_resource_packs")
+    var includeResourcePacks: Boolean = true,
     @SerialName("ignore_sound_packets")
     var ignoreSoundPackets: Boolean = false,
     @SerialName("ignore_light_packets")

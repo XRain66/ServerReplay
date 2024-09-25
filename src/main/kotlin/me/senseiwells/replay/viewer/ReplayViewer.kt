@@ -15,10 +15,8 @@ import io.netty.buffer.Unpooled
 import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
-import it.unimi.dsi.fastutil.ints.IntSets
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
 import kotlinx.coroutines.*
-import kotlinx.coroutines.future.await
 import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.ducks.PackTracker
 import me.senseiwells.replay.mixin.viewer.EntityInvoker
@@ -30,8 +28,9 @@ import me.senseiwells.replay.viewer.ReplayViewerUtils.sendReplayPacket
 import me.senseiwells.replay.viewer.ReplayViewerUtils.startViewingReplay
 import me.senseiwells.replay.viewer.ReplayViewerUtils.stopViewingReplay
 import me.senseiwells.replay.viewer.ReplayViewerUtils.toClientboundPlayPacket
-import me.senseiwells.replay.viewer.packhost.PackHost
-import me.senseiwells.replay.viewer.packhost.ReplayPack
+import net.casual.arcade.host.HostedPack
+import net.casual.arcade.host.PackHost
+import net.casual.arcade.host.pack.ReadablePack
 import net.minecraft.ChatFormatting
 import net.minecraft.SharedConstants
 import net.minecraft.core.UUIDUtil
@@ -53,6 +52,7 @@ import net.minecraft.world.level.biome.BiomeManager
 import net.minecraft.world.scores.Objective
 import net.minecraft.world.scores.criteria.ObjectiveCriteria
 import java.io.IOException
+import java.io.InputStream
 import java.nio.file.Path
 import java.util.*
 import java.util.function.Supplier
@@ -74,8 +74,7 @@ class ReplayViewer(
     private var teleported = false
 
     private val coroutineScope = CoroutineScope(Dispatchers.Default + Job())
-    private val packHost = PackHost(ServerReplay.config.replayServerIp, nextFreePort())
-    private val packs = Int2ObjectOpenHashMap<String>()
+    private val packs = Int2ObjectOpenHashMap<HostedPack>()
 
     private val chunks = Collections.synchronizedCollection(LongOpenHashSet())
     private val entities = Collections.synchronizedCollection(IntOpenHashSet())
@@ -147,8 +146,10 @@ class ReplayViewer(
     }
 
     fun close() {
-        freePort(this.packHost.port)
-        this.packHost.stop()
+        for (hosted in this.packs.values) {
+            ServerReplay.removePack(hosted.pack)
+        }
+
         this.coroutineScope.coroutineContext.cancelChildren()
         this.connection.stopViewingReplay()
 
@@ -250,25 +251,22 @@ class ReplayViewer(
         return multimap
     }
 
-    private suspend fun hostResourcePacks() {
-        if (this.packHost.running) {
-            return
-        }
-
+    private fun hostResourcePacks() {
         val indices = this.replay.resourcePackIndex
         if (indices == null || indices.isEmpty()) {
             return
         }
 
-        for (hash in indices.values) {
-            this.packHost.addPack(ReplayPack(hash, this.replay))
+        val refs = ArrayList<Pair<Int, PackHost.HostedPackRef>>()
+        for ((id, hash) in indices) {
+            val ref = ServerReplay.hostPack(ReplayPack(hash))
+            if (ref != null) {
+                refs.add(id to ref)
+            }
         }
 
-        this.packHost.start().await()
-
-        for ((id, hash) in indices) {
-            val hosted = this.packHost.getHostedPack(hash) ?: continue
-            this.packs[id] = hosted.url
+        for ((id, ref) in refs) {
+            this.packs[id] = ref.value
         }
     }
 
@@ -593,7 +591,7 @@ class ReplayViewer(
         if (packet is ClientboundResourcePackPacket && packet.url.startsWith("replay://")) {
             val request = packet.url.removePrefix("replay://").toIntOrNull()
                 ?: throw IllegalStateException("Malformed replay packet url")
-            val url = this.packs[request]
+            val url = this.packs[request]?.url
             if (url == null) {
                 ServerReplay.logger.warn("Tried viewing unknown request $request for player ${this.player.scoreboardName}")
                 return packet
@@ -624,6 +622,19 @@ class ReplayViewer(
         this.connection.sendReplayPacket(packet)
     }
 
+    private inner class ReplayPack(private val hash: String): ReadablePack {
+        override val name: String = "${System.identityHashCode(replay)}-${this.hash}"
+
+        override fun readable(): Boolean {
+            return replay.getResourcePack(this.hash).isPresent
+        }
+
+        override fun stream(): InputStream {
+            return replay.getResourcePack(this.hash).orNull()
+                ?: throw IllegalStateException("ReplayPack ${this.hash} doesn't exist")
+        }
+    }
+
     private companion object {
         const val VIEWER_ID = Int.MAX_VALUE - 10
         val VIEWER_UUID: UUID = UUIDUtil.createOfflinePlayerUUID("-ViewingProfile-")
@@ -634,19 +645,5 @@ class ReplayViewer(
             false,
             null
         )
-
-        private val active = IntSets.synchronize(IntOpenHashSet())
-
-        fun nextFreePort(): Int {
-            var current = ServerReplay.config.replayViewerPackPort
-            while (!this.active.add(current)) {
-                current += 1
-            }
-            return current
-        }
-
-        fun freePort(port: Int) {
-            this.active.remove(port)
-        }
     }
 }
