@@ -28,7 +28,7 @@ repositories {
 }
 
 
-val modVersion = "1.1.4"
+val modVersion = "1.1.5"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -45,7 +45,7 @@ dependencies {
     modImplementation(libs.fabric.api)
     modImplementation(libs.fabric.kotlin)
 
-    modImplementation(libs.arcade.pack.host)
+    include(modImplementation(libs.arcade.pack.host.get())!!)
 
     modCompileOnly(libs.carpet)
     modCompileOnly(libs.vmp)
