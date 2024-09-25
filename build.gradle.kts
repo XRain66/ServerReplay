@@ -117,9 +117,8 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Fixed an incompatibility with Servux
-            - Fixed an incompatibility with C2ME
-            - Fixed an issue that caused players to not be able to join when auto recording
+            - Added `"include_resource_packs"` config
+            - Optimized resource pack hosting
             """.trimIndent()
         )
         type = STABLE
