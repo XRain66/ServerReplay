@@ -9,6 +9,7 @@ parchment            = "1.18.2:2022.11.06"
 fabric-api           = "0.77.0+1.18.2"
 fabric-kotlin        = "1.9.2+kotlin.1.8.10"
 permissions          = "0.3.1"
+arcade               = "0.2.0-alpha.46+1.21.1"
 carpet               = "1.4.66"
 voicechat            = "fabric-1.18.2-2.5.7"
 voicechat-api        = "2.4.0"
@@ -20,10 +21,12 @@ fabric-loader = { module = "net.fabricmc:fabric-loader"           , version.ref 
 fabric-api    = { module = "net.fabricmc.fabric-api:fabric-api"   , version.ref = "fabric-api" }
 fabric-kotlin = { module = "net.fabricmc:fabric-language-kotlin"  , version.ref = "fabric-kotlin" }
 permissions   = { module = "me.lucko:fabric-permissions-api"      , version.ref = "permissions" }
+replay-studio    = { module = "com.github.ReplayMod:ReplayStudio"    , version.ref = "replay-studio" }
+arcade-pack-host = { module = "net.casual-championships:arcade-resource-pack-host", version.ref = "arcade" }
+
 carpet        = { module = "com.github.gnembon:fabric-carpet"     , version.ref = "carpet" }
 voicechat     = { module = "maven.modrinth:simple-voice-chat"     , version.ref = "voicechat" }
 voicechat-api = { module = "de.maxhenkel.voicechat:voicechat-api" , version.ref = "voicechat-api" }
-replay-studio = { module = "com.github.ReplayMod:ReplayStudio"    , version.ref = "replay-studio" }
 
 [plugins]
 fabric-loom          = { id = "fabric-loom", version.ref = "fabric-loom" }

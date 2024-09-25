@@ -1,7 +1,6 @@
 package me.senseiwells.replay.compat
 
 import com.google.common.collect.HashMultimap
-import me.senseiwells.replay.ServerReplay
 import net.fabricmc.loader.api.FabricLoader
 import org.objectweb.asm.tree.ClassNode
 import org.spongepowered.asm.mixin.extensibility.IMixinConfigPlugin
@@ -30,15 +29,10 @@ class ReplayMixinConfig: IMixinConfigPlugin {
     override fun shouldApplyMixin(targetClassName: String, mixinClassName: String): Boolean {
         if (mixinClassName.startsWith(MIXIN_COMPAT)) {
             val modId = mixinClassName.removePrefix(MIXIN_COMPAT).substringBefore('.')
-            val isModLoaded = FabricLoader.getInstance().isModLoaded(modId)
-            if (!isModLoaded) {
-                ServerReplay.logger.debug("Not applying compat mixin for mod $modId, mod was not loaded")
-            }
-            return isModLoaded
+            return FabricLoader.getInstance().isModLoaded(modId)
         }
         for (modId in incompatible.get(mixinClassName)) {
             if (FabricLoader.getInstance().isModLoaded(modId)) {
-                ServerReplay.logger.debug("Not applying $mixinClassName, $modId is incompatible")
                 return false
             }
         }

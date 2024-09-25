@@ -9,7 +9,6 @@ import net.minecraft.commands.Commands
 import net.minecraft.network.protocol.game.ClientboundResourcePackPacket
 
 object PackCommand {
-    @JvmStatic
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
         dispatcher.register(
             Commands.literal("resource-pack").then(
