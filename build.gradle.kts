@@ -16,6 +16,7 @@ plugins {
 val shade: Configuration by configurations.creating
 
 repositories {
+    maven("https://maven.supersanta.me/snapshots")
     maven("https://maven.parchmentmc.org/")
     maven("https://masa.dy.fi/maven")
     maven("https://jitpack.io")
@@ -43,6 +44,8 @@ dependencies {
     modImplementation(libs.fabric.loader)
     modImplementation(libs.fabric.api)
     modImplementation(libs.fabric.kotlin)
+
+    modImplementation(libs.arcade.pack.host)
 
     modCompileOnly(libs.carpet)
     modCompileOnly(libs.vmp)
