@@ -33,7 +33,6 @@ import java.util.concurrent.TimeUnit
 import kotlin.io.path.*
 
 object ReplayCommand {
-    @JvmStatic
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
         dispatcher.register(
             Commands.literal("replay").requires {

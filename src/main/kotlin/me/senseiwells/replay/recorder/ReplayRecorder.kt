@@ -853,7 +853,7 @@ abstract class ReplayRecorder(
     }
 
     private fun downloadAndRecordResourcePack(packet: ClientboundResourcePackPushPacket): Boolean {
-        if (packet.url.startsWith("replay://")) {
+        if (!ServerReplay.config.includeResourcePacks || packet.url.startsWith("replay://")) {
             return false
         }
         @Suppress("DEPRECATION")

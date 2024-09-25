@@ -15,6 +15,7 @@ plugins {
 val shade: Configuration by configurations.creating
 
 repositories {
+    maven("https://maven.supersanta.me/snapshots")
     maven("https://maven.parchmentmc.org/")
     maven("https://masa.dy.fi/maven")
     maven("https://jitpack.io")
@@ -26,7 +27,7 @@ repositories {
 }
 
 
-val modVersion = "1.1.4"
+val modVersion = "1.1.5"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -42,6 +43,8 @@ dependencies {
     modImplementation(libs.fabric.loader)
     modImplementation(libs.fabric.api)
     modImplementation(libs.fabric.kotlin)
+
+    include(modImplementation(libs.arcade.pack.host.get())!!)
 
     modCompileOnly(libs.carpet)
     modCompileOnly(libs.vmp)
@@ -112,9 +115,8 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Fixed an incompatibility with Servux
-            - Fixed an incompatibility with C2ME
-            - Fixed an issue that caused players to not be able to join when auto recording
+            - Added `"include_resource_packs"` config
+            - Optimized resource pack hosting
             """.trimIndent()
         )
         type = STABLE

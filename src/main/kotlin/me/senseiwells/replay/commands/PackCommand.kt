@@ -17,7 +17,6 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 
 object PackCommand {
-    @JvmStatic
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
         dispatcher.register(
             Commands.literal("resource-pack").then(
