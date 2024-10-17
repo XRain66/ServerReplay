@@ -52,7 +52,7 @@ dependencies {
     modCompileOnly(explosion.fabric(libs.c2me))
     modCompileOnly(libs.servux)
     modCompileOnly(libs.syncmatica)
-    modCompileOnly(libs.voicechat)
+    modImplementation(libs.voicechat)
     implementation(libs.voicechat.api)
 
     shade(modImplementation(libs.replay.studio.get())!!)
