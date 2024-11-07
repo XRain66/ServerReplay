@@ -118,8 +118,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Added `"include_resource_packs"` config
-            - Optimized resource pack hosting
+            - Updated to 1.21.3
             """.trimIndent()
         )
         type = STABLE
