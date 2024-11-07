@@ -1,24 +1,23 @@
 [versions]
 fabric-loom          = "1.7-SNAPSHOT"
 mod-publish          = "0.7.0"
-kotlin-serialization = "1.9.21"
 shadow               = "8.1.1"
 explosion            = "0.2.0"
-minecraft            = "1.21.1"
-fabric-loader        = "0.16.5"
+minecraft            = "1.21.3"
+fabric-loader        = "0.16.9"
 parchment            = "1.21:2024.07.28"
-fabric-api           = "0.103.0+1.21.1"
+fabric-api           = "0.107.0+1.21.3"
 fabric-kotlin        = "1.11.0+kotlin.2.0.0"
-permissions          = "0.3.1"
-arcade               = "0.2.0-alpha.46+1.21.1"
-carpet               = "1.4.147"
-voicechat            = "fabric-1.21.1-2.5.20"
+permissions          = "0.3.3"
+arcade               = "0.3.1-alpha.8+1.21.3"
+carpet               = "1.4.158"
+voicechat            = "fabric-1.21.3-2.5.25"
 voicechat-api        = "2.5.0"
-vmp                  = "0.2.0+beta.7.168+1.21.1"
-c2me                 = "0.3.0+alpha.0.206+1.21.1"
-servux               = "1.21-0.3.8-sakura.1"
-syncmatica           = "1.21-sakura.6"
-replay-studio        = "1e96fda605"
+vmp                  = "0.2.0+beta.7.180+1.21.3"
+c2me                 = "0.3.0+beta.1.0+1.21.3"
+servux               = "1.21.3-0.4.0-sakura.2"
+syncmatica           = "1.21.3-sakura.10"
+replay-studio        = "4e670490d1"
 
 [libraries]
 minecraft        = { module = "com.mojang:minecraft"                              , version.ref = "minecraft" }
@@ -39,7 +38,6 @@ syncmatica       = { module = "com.github.sakura-ryoko:syncmatica"              
 
 [plugins]
 fabric-loom          = { id = "fabric-loom", version.ref = "fabric-loom" }
-kotlin-serialization = { id = "org.jetbrains.kotlin.plugin.serialization", version.ref = "kotlin-serialization" }
 mod-publish          = { id = "me.modmuss50.mod-publish-plugin", version.ref = "mod-publish" }
 shadow               = { id = "com.github.johnrengelman.shadow", version.ref = "shadow" }
 explosion            = { id = "lol.bai.explosion", version.ref = "explosion"}

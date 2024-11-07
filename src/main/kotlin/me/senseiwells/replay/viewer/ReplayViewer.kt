@@ -561,6 +561,7 @@ class ReplayViewer(
                         entry.latency,
                         entry.gameMode,
                         entry.displayName,
+                        entry.listOrder,
                         null
                     ))
                 }
@@ -576,6 +577,7 @@ class ReplayViewer(
                     previous.latency,
                     previous.gameMode,
                     previous.displayName,
+                    previous.listOrder,
                     null
                 )
             }

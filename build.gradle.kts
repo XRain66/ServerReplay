@@ -4,7 +4,7 @@ plugins {
         .split("+")[0]
 
     kotlin("jvm").version(jvmVersion)
-    alias(libs.plugins.kotlin.serialization)
+    kotlin("plugin.serialization").version(jvmVersion)
     alias(libs.plugins.fabric.loom)
     alias(libs.plugins.mod.publish)
     alias(libs.plugins.shadow)
@@ -16,6 +16,7 @@ plugins {
 val shade: Configuration by configurations.creating
 
 repositories {
+    mavenLocal()
     maven("https://maven.supersanta.me/snapshots")
     maven("https://maven.parchmentmc.org/")
     maven("https://masa.dy.fi/maven")

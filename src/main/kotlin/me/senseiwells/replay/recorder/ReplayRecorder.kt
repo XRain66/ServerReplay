@@ -44,7 +44,7 @@ import net.minecraft.network.protocol.configuration.ConfigurationProtocols
 import net.minecraft.network.protocol.game.ClientboundAddEntityPacket
 import net.minecraft.network.protocol.game.ClientboundBundlePacket
 import net.minecraft.network.protocol.game.GameProtocols
-import net.minecraft.network.protocol.login.ClientboundGameProfilePacket
+import net.minecraft.network.protocol.login.ClientboundLoginFinishedPacket
 import net.minecraft.network.protocol.login.LoginProtocols
 import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
@@ -569,7 +569,7 @@ abstract class ReplayRecorder(
         this.start = System.currentTimeMillis()
 
         // We will not have recorded this, so we need to do it manually.
-        this.record(ClientboundGameProfilePacket(this.profile, false))
+        this.record(ClientboundLoginFinishedPacket(this.profile))
 
         this.protocol = ConfigurationProtocols.CLIENTBOUND
     }

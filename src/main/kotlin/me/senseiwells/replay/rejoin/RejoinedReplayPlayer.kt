@@ -81,8 +81,8 @@ class RejoinedReplayPlayer private constructor(
 
             listener.send(ClientboundChangeDifficultyPacket(levelData.difficulty, levelData.isDifficultyLocked))
             listener.send(ClientboundPlayerAbilitiesPacket(player.abilities))
-            listener.send(ClientboundSetCarriedItemPacket(player.inventory.selected))
-            listener.send(ClientboundUpdateRecipesPacket(server.recipeManager.recipes))
+            listener.send(ClientboundSetHeldSlotPacket(player.inventory.selected))
+            listener.send(ClientboundUpdateRecipesPacket(server.recipeManager.synchronizedItemProperties, server.recipeManager.synchronizedStonecutterRecipes))
             players.sendPlayerPermissionLevel(player)
 
             player.recipeBook.sendInitialRecipeBook(player)
@@ -125,6 +125,7 @@ class RejoinedReplayPlayer private constructor(
                         0,
                         unique.gameMode.gameModeForPlayer,
                         null,
+                        0,
                         null
                     ))
                 }

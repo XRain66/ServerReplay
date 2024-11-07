@@ -6,11 +6,9 @@ import net.minecraft.network.protocol.Packet
 import net.minecraft.network.protocol.game.*
 import net.minecraft.network.protocol.login.ClientboundLoginCompressionPacket
 import net.minecraft.server.level.ServerLevel
-import net.minecraft.sounds.SoundSource
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.entity.item.PrimedTnt
 import net.minecraft.world.entity.projectile.Projectile
-import net.minecraft.world.level.Explosion
 
 object ReplayOptimizerUtils {
     // Set of packets that are ignored by replay mod
@@ -80,11 +78,6 @@ object ReplayOptimizerUtils {
             }
         }
 
-        if (ServerReplay.config.optimizeExplosionPackets && packet is ClientboundExplodePacket) {
-            this.optimiseExplosions(recorder, packet)
-            return true
-        }
-
         if (ServerReplay.config.ignoreLightPackets && packet is ClientboundLightUpdatePacket) {
             return true
         }
@@ -121,36 +114,6 @@ object ReplayOptimizerUtils {
             return true
         }
         return false
-    }
-
-    // Explosion packets are huge...
-    // They contain way more data than they need to.
-    // We only really need to send the client the explosion sound and particles.
-    private fun optimiseExplosions(recorder: ReplayRecorder, packet: ClientboundExplodePacket) {
-        // Based on Explosion#finalizeExplosion
-        val random = recorder.level.random
-        recorder.record(ClientboundSoundPacket(
-            packet.explosionSound,
-            SoundSource.BLOCKS,
-            packet.x, packet.y, packet.z,
-            4.0F,
-            (1 + (random.nextFloat() - random.nextFloat()) * 0.2F) * 0.7F,
-            random.nextLong()
-        ))
-
-        val breaks = packet.blockInteraction != Explosion.BlockInteraction.KEEP
-        val particles = if (packet.power >= 2.0F && breaks) {
-            packet.largeExplosionParticles
-        } else {
-            packet.smallExplosionParticles
-        }
-        recorder.record(ClientboundLevelParticlesPacket(
-            particles,
-            particles.type.overrideLimiter,
-            packet.x, packet.y, packet.z,
-            1.0F, 0.0F, 0.0F,
-            1.0F, 0
-        ))
     }
 
     @Suppress("UNCHECKED_CAST")
