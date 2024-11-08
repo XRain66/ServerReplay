@@ -119,6 +119,12 @@ abstract class ReplayRecorder(
     private var ignore = false
 
     /**
+     * The number of markers that have been added to the recording.
+     */
+    var markers = 0
+        private set
+
+    /**
      * The directory at which all the temporary replay
      * files will be stored.
      * This also determines the final location of the replay file.
@@ -301,6 +307,7 @@ abstract class ReplayRecorder(
         rotation: Vec2 = this.rotation,
         time: Int = this.getTimestamp().toInt()
     ) {
+        this.markers++
         val marker = Marker()
         marker.time = time
         marker.name = name
