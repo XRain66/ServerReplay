@@ -61,10 +61,6 @@ object ReplayVoicechatPlugin: VoicechatPlugin, ServerReplayPlugin {
     override fun initialize(api: VoicechatApi) {
         this.decoder = api.createDecoder()
 
-        if (!ServerReplay.config.recordVoiceChat) {
-            ServerReplay.logger.info("Not currently recording voice chat in replays, you must enabled this in the config")
-        }
-
         @Suppress("DEPRECATION")
         ServerReplayPluginManager.registerPlugin(this)
     }

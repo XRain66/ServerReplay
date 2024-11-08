@@ -27,7 +27,7 @@ repositories {
 }
 
 
-val modVersion = "1.1.5"
+val modVersion = "1.1.6"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -50,7 +50,7 @@ dependencies {
     modCompileOnly(libs.vmp)
     modCompileOnly(libs.servux)
     modCompileOnly(libs.syncmatica)
-    modCompileOnly(libs.voicechat)
+    modImplementation(libs.voicechat)
     implementation(libs.voicechat.api)
 
     shade(modImplementation(libs.replay.studio.get())!!)
