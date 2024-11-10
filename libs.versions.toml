@@ -9,7 +9,9 @@ parchment            = "1.21:2024.07.28"
 fabric-api           = "0.107.0+1.21.3"
 fabric-kotlin        = "1.11.0+kotlin.2.0.0"
 permissions          = "0.3.3"
-arcade               = "0.3.1-alpha.8+1.21.3"
+inject               = "2.2.0"
+
+# Compatability depdendencies
 carpet               = "1.4.158"
 voicechat            = "fabric-1.21.3-2.5.25"
 voicechat-api        = "2.5.0"
@@ -20,14 +22,17 @@ syncmatica           = "1.21.3-sakura.10"
 replay-studio        = "4e670490d1"
 
 [libraries]
-minecraft        = { module = "com.mojang:minecraft"                              , version.ref = "minecraft" }
-fabric-loader    = { module = "net.fabricmc:fabric-loader"                        , version.ref = "fabric-loader" }
-fabric-api       = { module = "net.fabricmc.fabric-api:fabric-api"                , version.ref = "fabric-api" }
-fabric-kotlin    = { module = "net.fabricmc:fabric-language-kotlin"               , version.ref = "fabric-kotlin" }
-permissions      = { module = "me.lucko:fabric-permissions-api"                   , version.ref = "permissions" }
-replay-studio    = { module = "com.github.ReplayMod:ReplayStudio"                 , version.ref = "replay-studio" }
-arcade-pack-host = { module = "net.casual-championships:arcade-resource-pack-host", version.ref = "arcade" }
+minecraft        = { module = "com.mojang:minecraft"               , version.ref = "minecraft" }
+fabric-loader    = { module = "net.fabricmc:fabric-loader"         , version.ref = "fabric-loader" }
+fabric-api       = { module = "net.fabricmc.fabric-api:fabric-api" , version.ref = "fabric-api" }
+fabric-kotlin    = { module = "net.fabricmc:fabric-language-kotlin", version.ref = "fabric-kotlin" }
+permissions      = { module = "me.lucko:fabric-permissions-api"    , version.ref = "permissions" }
+replay-studio    = { module = "com.github.ReplayMod:ReplayStudio"  , version.ref = "replay-studio" }
+inject           = { module = "net.mcbrawls.inject:api"            , version.ref = "inject" }
+inject-http      = { module = "net.mcbrawls.inject:http"           , version.ref = "inject" }
+inject-fabric    = { module = "net.mcbrawls.inject:fabric"         , version.ref = "inject" }
 
+# Compatability depdendencies
 carpet           = { module = "com.github.gnembon:fabric-carpet"                  , version.ref = "carpet" }
 voicechat        = { module = "maven.modrinth:simple-voice-chat"                  , version.ref = "voicechat" }
 voicechat-api    = { module = "de.maxhenkel.voicechat:voicechat-api"              , version.ref = "voicechat-api" }

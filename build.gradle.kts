@@ -17,7 +17,6 @@ val shade: Configuration by configurations.creating
 
 repositories {
     mavenLocal()
-    maven("https://maven.supersanta.me/snapshots")
     maven("https://maven.parchmentmc.org/")
     maven("https://masa.dy.fi/maven")
     maven("https://jitpack.io")
@@ -25,6 +24,7 @@ repositories {
     maven("https://oss.sonatype.org/content/repositories/snapshots")
     maven("https://api.modrinth.com/maven")
     maven("https://maven.maxhenkel.de/repository/public")
+    maven("https://maven.andante.dev/releases/")
     mavenCentral()
 }
 
@@ -46,7 +46,9 @@ dependencies {
     modImplementation(libs.fabric.api)
     modImplementation(libs.fabric.kotlin)
 
-    include(modImplementation(libs.arcade.pack.host.get())!!)
+    implementation(libs.inject)
+    implementation(libs.inject.http)
+    include(modImplementation(libs.inject.fabric.get())!!)
 
     modCompileOnly(libs.carpet)
     modCompileOnly(libs.vmp)
