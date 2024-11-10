@@ -144,16 +144,11 @@ class ReplayViewer internal constructor(
             // Un-lazy the markers
             markers
 
-            hostResourcePacks()
             streamReplay { this.isActive }
         }
     }
 
     fun close() {
-//        for (hosted in this.packs.values) {
-//            ServerReplay.removePack(hosted.pack)
-//        }
-
         this.coroutineScope.coroutineContext.cancelChildren()
         this.connection.stopViewingReplay()
 
@@ -258,25 +253,6 @@ class ReplayViewer internal constructor(
             multimap.put(marker.name, marker)
         }
         return multimap
-    }
-
-    private fun hostResourcePacks() {
-        val indices = this.replay.resourcePackIndex
-        if (indices == null || indices.isEmpty()) {
-            return
-        }
-
-//        val refs = ArrayList<Pair<Int, PackHost.HostedPackRef>>()
-//        for ((id, hash) in indices) {
-//            val ref = ServerReplay.hostPack(ReplayPack(hash))
-//            if (ref != null) {
-//                refs.add(id to ref)
-//            }
-//        }
-//
-//        for ((id, ref) in refs) {
-//            this.packs[id] = ref.value
-//        }
     }
 
     private suspend fun streamReplay(active: Supplier<Boolean>) {

@@ -29,7 +29,7 @@ repositories {
 }
 
 
-val modVersion = "1.1.6"
+val modVersion = "1.2.0"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -120,7 +120,9 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Updated to 1.21.3
+            - Packet encoding now happens async
+            - Now using injected http servers for downloading replays and packs
+              - You no longer need to open additional ports for this
             """.trimIndent()
         )
         type = STABLE

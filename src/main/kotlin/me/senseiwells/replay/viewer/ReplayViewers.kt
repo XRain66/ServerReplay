@@ -3,8 +3,6 @@ package me.senseiwells.replay.viewer
 import net.minecraft.server.level.ServerPlayer
 import java.nio.file.Path
 import java.util.*
-import kotlin.collections.ArrayList
-import kotlin.collections.LinkedHashMap
 
 object ReplayViewers {
     private val viewers = LinkedHashMap<UUID, ReplayViewer>()
