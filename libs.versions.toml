@@ -9,7 +9,7 @@ parchment            = "1.21:2024.07.28"
 fabric-api           = "0.107.0+1.21.3"
 fabric-kotlin        = "1.11.0+kotlin.2.0.0"
 permissions          = "0.3.3"
-inject               = "2.2.0"
+inject               = "2.2.2"
 
 # Compatability depdendencies
 carpet               = "1.4.158"
