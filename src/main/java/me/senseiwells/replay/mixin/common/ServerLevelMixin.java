@@ -16,9 +16,11 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.sounds.SoundEvent;
+import net.minecraft.util.profiling.ProfilerFiller;
 import net.minecraft.world.damagesource.DamageSource;
 import net.minecraft.world.entity.Entity;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Explosion;
 import net.minecraft.world.level.ExplosionDamageCalculator;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.dimension.DimensionType;
@@ -32,7 +34,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
-import java.util.Optional;
+import java.util.function.Supplier;
 
 @Mixin(ServerLevel.class)
 public abstract class ServerLevelMixin extends Level {
@@ -41,12 +43,13 @@ public abstract class ServerLevelMixin extends Level {
 		ResourceKey<Level> dimension,
 		RegistryAccess registryAccess,
 		Holder<DimensionType> dimensionTypeRegistration,
+		Supplier<ProfilerFiller> profiler,
 		boolean isClientSide,
 		boolean isDebug,
 		long biomeZoomSeed,
 		int maxChainedNeighborUpdates
 	) {
-		super(levelData, dimension, registryAccess, dimensionTypeRegistration, isClientSide, isDebug, biomeZoomSeed, maxChainedNeighborUpdates);
+		super(levelData, dimension, registryAccess, dimensionTypeRegistration, profiler, isClientSide, isDebug, biomeZoomSeed, maxChainedNeighborUpdates);
 	}
 
 	@Shadow @Nullable public abstract Entity getEntity(int id);
@@ -75,25 +78,33 @@ public abstract class ServerLevelMixin extends Level {
 		at = @At("TAIL")
 	)
 	private void onExplode(
-		@Nullable Entity entity,
-		@Nullable DamageSource source,
-		@Nullable ExplosionDamageCalculator calculator,
+		Entity entity,
+		DamageSource source,
+		ExplosionDamageCalculator calculator,
 		double posX,
 		double posY,
 		double posZ,
 		float radius,
 		boolean causeFire,
-		ExplosionInteraction interaction,
+		Level.ExplosionInteraction interaction,
 		ParticleOptions smallParticles,
 		ParticleOptions largeParticles,
 		Holder<SoundEvent> sound,
-		CallbackInfo ci,
-		@Local Vec3 pos,
-		@Local(ordinal = 2) ParticleOptions particles
+		CallbackInfoReturnable<Explosion> cir,
+		@Local Explosion explosion
 	) {
 		ChunkPos chunkPos = new ChunkPos(BlockPos.containing(posX, posY, posZ));
 		for (ChunkRecorder recorder : ChunkRecorders.containing(this.dimension(), chunkPos)) {
-			recorder.record(new ClientboundExplodePacket(pos, Optional.empty(), particles, sound));
+			recorder.record(new ClientboundExplodePacket(
+				posX, posY, posZ, radius,
+				explosion.getToBlow(),
+				// Knock-back
+				Vec3.ZERO,
+				explosion.getBlockInteraction(),
+				explosion.getSmallExplosionParticles(),
+				explosion.getLargeExplosionParticles(),
+				explosion.getExplosionSound()
+			));
 		}
 	}
 
