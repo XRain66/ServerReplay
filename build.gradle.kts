@@ -4,7 +4,7 @@ plugins {
         .split("+")[0]
 
     kotlin("jvm").version(jvmVersion)
-    alias(libs.plugins.kotlin.serialization)
+    kotlin("plugin.serialization").version(jvmVersion)
     alias(libs.plugins.fabric.loom)
     alias(libs.plugins.mod.publish)
     alias(libs.plugins.shadow)
@@ -15,7 +15,7 @@ plugins {
 val shade: Configuration by configurations.creating
 
 repositories {
-    maven("https://maven.supersanta.me/snapshots")
+    mavenLocal()
     maven("https://maven.parchmentmc.org/")
     maven("https://masa.dy.fi/maven")
     maven("https://jitpack.io")
@@ -23,11 +23,12 @@ repositories {
     maven("https://oss.sonatype.org/content/repositories/snapshots")
     maven("https://api.modrinth.com/maven")
     maven("https://maven.maxhenkel.de/repository/public")
+    maven("https://maven.andante.dev/releases/")
     mavenCentral()
 }
 
 
-val modVersion = "1.1.6"
+val modVersion = "1.2.2"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -44,7 +45,9 @@ dependencies {
     modImplementation(libs.fabric.api)
     modImplementation(libs.fabric.kotlin)
 
-    include(modImplementation(libs.arcade.pack.host.get())!!)
+    include(implementation(libs.inject.api.get())!!)
+    include(implementation(libs.inject.http.get())!!)
+    include(modImplementation(libs.inject.fabric.get())!!)
 
     modCompileOnly(libs.carpet)
     modCompileOnly(libs.vmp)
@@ -115,8 +118,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Added `"include_resource_packs"` config
-            - Optimized resource pack hosting
+            - Fix a crash
             """.trimIndent()
         )
         type = STABLE

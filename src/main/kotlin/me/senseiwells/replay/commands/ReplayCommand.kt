@@ -12,10 +12,11 @@ import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.chunk.ChunkArea
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.chunk.ChunkRecorders
+import me.senseiwells.replay.http.DownloadReplaysHttpInjector
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.util.FileUtils.streamDirectoryEntriesOrEmpty
-import me.senseiwells.replay.viewer.ReplayViewer
+import me.senseiwells.replay.viewer.ReplayViewers
 import net.minecraft.ChatFormatting
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
@@ -416,8 +417,7 @@ object ReplayCommand {
         val replayPath = path.resolve("${replayName}.mcpr")
 
         if (replayPath.exists()) {
-            val viewer = ReplayViewer(replayPath, player.connection)
-            viewer.start()
+            ReplayViewers.start(replayPath, player)
             return 1
         }
 
@@ -429,8 +429,7 @@ object ReplayCommand {
         context: CommandContext<CommandSourceStack>,
         isPlayer: Boolean
     ): Int {
-        val url = ServerReplay.getDownloadUrl()
-        if (!ServerReplay.config.allowDownloadingReplays || url == null) {
+        if (!ServerReplay.config.allowDownloadingReplays) {
             context.source.sendFailure(
                 Component.literal("Downloading replays is disabled, you must enable it in the config")
             )
@@ -448,9 +447,10 @@ object ReplayCommand {
         val name = StringArgumentType.getString(context, "replay")
         val path = "$root/${URLEncoder.encode(name, StandardCharsets.UTF_8)}.mcpr"
 
+        val url = DownloadReplaysHttpInjector.createUrl(context.source.server, path)
         val here = Component.literal("[here]")
             .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD)
-            .withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, "$url/$path")) }
+            .withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, url)) }
         val message = Component.literal("You can download the replay ").append(here)
         context.source.sendSystemMessage(message)
         return 1

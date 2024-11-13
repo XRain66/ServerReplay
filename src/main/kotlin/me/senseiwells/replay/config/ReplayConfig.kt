@@ -92,10 +92,6 @@ data class ReplayConfig(
     @JsonNames("replay_viewer_pack_ip")
     @SerialName("replay_server_ip")
     var replayServerIp: String? = null,
-    @SerialName("replay_viewer_pack_port")
-    var replayViewerPackPort: Int = 24464,
-    @SerialName("replay_download_port")
-    var replayDownloadPort: Int = 25585,
     @SerialName("allow_downloading_replays")
     var allowDownloadingReplays: Boolean = false,
     @SerialName("player_predicate")
@@ -147,6 +143,7 @@ data class ReplayConfig(
             encodeDefaults = true
             prettyPrint = true
             prettyPrintIndent = "  "
+            ignoreUnknownKeys = true
         }
 
         fun read(): ReplayConfig {

@@ -63,7 +63,6 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.collections.HashSet
 import kotlin.io.path.*
 import kotlin.math.max
 import kotlin.time.Duration.Companion.milliseconds
@@ -206,33 +205,12 @@ abstract class ReplayRecorder(
             return
         }
 
-        val saved = try {
-            this.encodePacket(outgoing)
-        } catch (e: EncoderException) {
-            val name = outgoing.getDebugName()
-            if (!safe) {
-                val state = this.protocolAsState()
-                val message = "Failed to encode packet $name during $state, likely due to being off-thread, skipping"
-                ServerReplay.logger.error(message, e)
-            } else {
-                ServerReplay.logger.error("Failed to encode packet $name, skipping", e)
-            }
-            return
-        }
-        if (ServerReplay.config.debug) {
-            val type = outgoing.getDebugName()
-            this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(saved.buf.readableBytes())
-        }
-
+        val protocol = this.protocol
         val timestamp = this.getTimestamp()
         this.lastPacket = timestamp
 
         this.executor.execute {
-            try {
-                this.output.write(timestamp, saved)
-            } catch (e: IOException) {
-                ServerReplay.logger.error("Failed to write packet", e)
-            }
+            this.writePacket(outgoing, protocol, timestamp, !safe)
         }
 
         this.postPacket(outgoing)
@@ -591,12 +569,43 @@ abstract class ReplayRecorder(
         this.protocol = GameProtocols.CLIENTBOUND.bind(RegistryFriendlyByteBuf.decorator(this.server.registryAccess()))
     }
 
-    private fun encodePacket(outgoing: MinecraftPacket<*>): Packet {
+    private fun writePacket(
+        outgoing: MinecraftPacket<*>,
+        protocol: ProtocolInfo<*>,
+        timestamp: Long,
+        offThread: Boolean
+    ) {
+        val saved = try {
+            this.encodePacket(outgoing, protocol)
+        } catch (e: EncoderException) {
+            val name = outgoing.getDebugName()
+            if (!offThread) {
+                ServerReplay.logger.error("Failed to encode packet $name, skipping", e)
+                return
+            }
+            ServerReplay.logger.error(
+                "Failed to encode packet $name during ${protocol.id()} likely due to being off-thread, skipping", e
+            )
+            return
+        }
+        if (ServerReplay.config.debug) {
+            val type = outgoing.getDebugName()
+            this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(saved.buf.readableBytes())
+        }
+
+        try {
+            this.output.write(timestamp, saved)
+        } catch (e: IOException) {
+            ServerReplay.logger.error("Failed to write packet", e)
+        }
+    }
+
+    private fun encodePacket(outgoing: MinecraftPacket<*>, protocol: ProtocolInfo<*>): Packet {
         val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
-        val registry = PacketTypeRegistry.get(version, this.protocolAsState())
+        val registry = PacketTypeRegistry.get(version, this.protocolAsState(protocol))
 
         @Suppress("UNCHECKED_CAST")
-        val codec = (this.protocol.codec() as StreamCodec<ByteBuf, MinecraftPacket<*>>)
+        val codec = (protocol.codec() as StreamCodec<ByteBuf, MinecraftPacket<*>>)
 
         if (outgoing is ClientboundCustomPayloadPacket) {
             val payload = outgoing.payload
@@ -839,8 +848,8 @@ abstract class ReplayRecorder(
         return this.location.parent.resolve(this.location.name + ".mcpr")
     }
 
-    private fun protocolAsState(): State {
-        return when (this.protocol.id()) {
+    private fun protocolAsState(protocol: ProtocolInfo<*>): State {
+        return when (protocol.id()) {
             ConnectionProtocol.PLAY -> State.PLAY
             ConnectionProtocol.CONFIGURATION -> State.CONFIGURATION
             ConnectionProtocol.LOGIN -> State.LOGIN
