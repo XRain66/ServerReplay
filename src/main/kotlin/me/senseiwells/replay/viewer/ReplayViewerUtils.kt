@@ -16,43 +16,24 @@ import java.util.EnumSet
 import com.replaymod.replaystudio.protocol.Packet as ReplayPacket
 
 object ReplayViewerUtils {
-    fun ReplayPacket.toClientboundPlayPacket(protocol: ProtocolInfo<ClientGamePacketListener>): Packet<*> {
-        val wrapper = FriendlyByteBuf(Unpooled.buffer())
+    fun ReplayPacket.toClientboundPlayPacket(): Packet<*> {
         useByteBuf(this.buf) { buf ->
-            try {
-                wrapper.writeVarInt(this.id)
-                wrapper.writeBytes(buf)
-                return protocol.codec().decode(wrapper)
-            } finally {
-                wrapper.release()
-            }
+            return ConnectionProtocol.PLAY.createPacket(PacketFlow.CLIENTBOUND, this.id, buf)
+                ?: throw IllegalStateException("Failed to create play packet with id ${this.id}")
         }
     }
 
-    fun ReplayPacket.toClientboundConfigurationPacket(): Packet<*> {
-        val wrapper = FriendlyByteBuf(Unpooled.buffer())
-        useByteBuf(this.buf) { buf ->
-            try {
-                wrapper.writeVarInt(this.id)
-                wrapper.writeBytes(buf)
-                return ConfigurationProtocols.CLIENTBOUND.codec().decode(wrapper)
-            } finally {
-                wrapper.release()
-            }
-        }
-    }
-
-    private inline fun <T> useByteBuf(buf: com.github.steveice10.netty.buffer.ByteBuf, block: (ByteBuf) -> T): T {
+    private inline fun <T> useByteBuf(buf: com.github.steveice10.netty.buffer.ByteBuf, block: (FriendlyByteBuf) -> T): T {
         // When we compile we map steveice10.netty -> io.netty
         // We just need this check for dev environment
         @Suppress("USELESS_IS_CHECK")
         if (buf is ByteBuf) {
-            return block(buf)
+            return block(FriendlyByteBuf(buf))
         }
 
         val array = ByteArray(buf.readableBytes())
         buf.readBytes(array)
-        val copy = Unpooled.wrappedBuffer(array)
+        val copy = FriendlyByteBuf(Unpooled.wrappedBuffer(array))
         try {
             return block(copy)
         } finally {

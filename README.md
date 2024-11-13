@@ -452,7 +452,7 @@ repositories {
 }
 
 dependencies {
-    modImplementation("me.senseiwells:server-replay:1.2.2+1.20.6")
+    modImplementation("me.senseiwells:server-replay:1.2.2+1.20.1")
 }
 ```
 

@@ -5,13 +5,13 @@ import com.mojang.datafixers.util.Either;
 import me.senseiwells.replay.chunk.ChunkRecorder;
 import me.senseiwells.replay.ducks.ChunkRecordable;
 import net.minecraft.network.protocol.Packet;
-import net.minecraft.server.level.*;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.server.level.ChunkHolder;
 import net.minecraft.server.level.ChunkMap;
 import net.minecraft.server.level.ServerPlayer;
 import net.minecraft.world.level.chunk.LevelChunk;
 import org.jetbrains.annotations.Nullable;
+import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -34,9 +34,9 @@ public abstract class ChunkHolderMixin implements ChunkRecordable {
 
     @Shadow public abstract @Nullable LevelChunk getFullChunk();
 
-    @Shadow @Final private ChunkPos pos;
+	@Shadow @Final ChunkPos pos;
 
-    @Inject(
+	@Inject(
 		method = "broadcast",
 		at = @At("HEAD")
 	)
@@ -103,7 +103,7 @@ public abstract class ChunkHolderMixin implements ChunkRecordable {
 	public void replay$addRecorder(ChunkRecorder recorder) {
 		if (this.replay$recorders.add(recorder)) {
 			this.getFullChunkFuture().thenAccept(result -> {
-				result.ifSuccess(recorder::onChunkLoaded);
+				result.ifLeft(recorder::onChunkLoaded);
 			});
 
 			recorder.addRecordable(this);

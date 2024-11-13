@@ -12,7 +12,6 @@ import com.replaymod.replaystudio.protocol.PacketTypeRegistry
 import com.replaymod.replaystudio.replay.ZipReplayFile
 import com.replaymod.replaystudio.studio.ReplayStudio
 import io.netty.buffer.Unpooled
-import it.unimi.dsi.fastutil.ints.Int2ObjectOpenHashMap
 import it.unimi.dsi.fastutil.ints.IntArrayList
 import it.unimi.dsi.fastutil.ints.IntOpenHashSet
 import it.unimi.dsi.fastutil.longs.LongOpenHashSet
@@ -22,6 +21,7 @@ import me.senseiwells.replay.ducks.PackTracker
 import me.senseiwells.replay.http.DownloadPacksHttpInjector
 import me.senseiwells.replay.mixin.viewer.EntityInvoker
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
+import me.senseiwells.replay.util.DateTimeUtils.formatHHMMSS
 import me.senseiwells.replay.util.MathUtils
 import me.senseiwells.replay.viewer.ReplayViewerUtils.getViewingReplay
 import me.senseiwells.replay.viewer.ReplayViewerUtils.sendReplayPacket
@@ -45,8 +45,6 @@ import net.minecraft.world.BossEvent.BossBarOverlay
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.GameType
-import net.minecraft.world.phys.Vec3
-import net.minecraft.world.scores.DisplaySlot
 import net.minecraft.world.scores.Objective
 import net.minecraft.world.scores.criteria.ObjectiveCriteria
 import net.minecraft.world.level.biome.BiomeManager
@@ -423,8 +421,6 @@ class ReplayViewer internal constructor(
                     ObjectiveCriteria.DUMMY,
                     Component.empty(),
                     ObjectiveCriteria.RenderType.INTEGER,
-                    false,
-                    null
                 )
                 this.send(ClientboundSetObjectivePacket(dummy, ClientboundSetObjectivePacket.METHOD_REMOVE))
             }

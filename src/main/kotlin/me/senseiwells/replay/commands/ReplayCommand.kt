@@ -16,7 +16,7 @@ import me.senseiwells.replay.http.DownloadReplaysHttpInjector
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.util.FileUtils.streamDirectoryEntriesOrEmpty
-import me.senseiwells.replay.viewer.ReplayViewers
+import me.senseiwells.replay.viewer.ReplayViewer
 import net.minecraft.ChatFormatting
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
@@ -417,7 +417,8 @@ object ReplayCommand {
         val replayPath = path.resolve("${replayName}.mcpr")
 
         if (replayPath.exists()) {
-            ReplayViewers.start(replayPath, player)
+            val viewer = ReplayViewer(replayPath, player.connection)
+            viewer.start()
             return 1
         }
 
@@ -450,7 +451,7 @@ object ReplayCommand {
         val url = DownloadReplaysHttpInjector.createUrl(context.source.server, path)
         val here = Component.literal("[here]")
             .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD)
-            .withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, url)) }
+            .withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, "$url/$path")) }
         val message = Component.literal("You can download the replay ").append(here)
         context.source.sendSystemMessage(message)
         return 1

@@ -49,8 +49,6 @@ dependencies {
 
     modCompileOnly(libs.carpet)
     modCompileOnly(libs.vmp)
-    modCompileOnly(libs.servux)
-    modCompileOnly(libs.syncmatica)
     modImplementation(libs.voicechat)
     implementation(libs.voicechat.api)
 

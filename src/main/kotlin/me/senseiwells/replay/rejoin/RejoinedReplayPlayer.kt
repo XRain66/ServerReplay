@@ -1,6 +1,7 @@
 package me.senseiwells.replay.rejoin
 
 import me.senseiwells.replay.ducks.PackTracker
+import me.senseiwells.replay.mixin.common.PlayerListAccessor
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.viewer.ReplayViewerUtils
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs
