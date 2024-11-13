@@ -52,7 +52,7 @@ dependencies {
 
     modCompileOnly(libs.carpet)
     modCompileOnly(libs.vmp)
-//    modCompileOnly(explosion.fabric(libs.c2me))
+    modCompileOnly(explosion.fabric(libs.c2me))
     modCompileOnly(libs.servux)
     modCompileOnly(libs.syncmatica)
     modImplementation(libs.voicechat)
