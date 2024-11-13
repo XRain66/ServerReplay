@@ -28,7 +28,7 @@ fabric-api       = { module = "net.fabricmc.fabric-api:fabric-api" , version.ref
 fabric-kotlin    = { module = "net.fabricmc:fabric-language-kotlin", version.ref = "fabric-kotlin" }
 permissions      = { module = "me.lucko:fabric-permissions-api"    , version.ref = "permissions" }
 replay-studio    = { module = "com.github.ReplayMod:ReplayStudio"  , version.ref = "replay-studio" }
-inject           = { module = "net.mcbrawls.inject:api"            , version.ref = "inject" }
+inject-api       = { module = "net.mcbrawls.inject:api"            , version.ref = "inject" }
 inject-http      = { module = "net.mcbrawls.inject:http"           , version.ref = "inject" }
 inject-fabric    = { module = "net.mcbrawls.inject:fabric"         , version.ref = "inject" }
 

@@ -29,7 +29,7 @@ repositories {
 }
 
 
-val modVersion = "1.2.0"
+val modVersion = "1.2.2"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
@@ -46,13 +46,13 @@ dependencies {
     modImplementation(libs.fabric.api)
     modImplementation(libs.fabric.kotlin)
 
-    implementation(libs.inject)
-    implementation(libs.inject.http)
+    include(implementation(libs.inject.api.get())!!)
+    include(implementation(libs.inject.http.get())!!)
     include(modImplementation(libs.inject.fabric.get())!!)
 
     modCompileOnly(libs.carpet)
     modCompileOnly(libs.vmp)
-    modCompileOnly(explosion.fabric(libs.c2me))
+//    modCompileOnly(explosion.fabric(libs.c2me))
     modCompileOnly(libs.servux)
     modCompileOnly(libs.syncmatica)
     modImplementation(libs.voicechat)
@@ -120,9 +120,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Packet encoding now happens async
-            - Now using injected http servers for downloading replays and packs
-              - You no longer need to open additional ports for this
+            - Fix a crash
             """.trimIndent()
         )
         type = STABLE
