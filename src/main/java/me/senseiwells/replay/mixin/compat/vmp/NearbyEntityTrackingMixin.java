@@ -10,7 +10,6 @@ import net.minecraft.server.level.ServerLevel;
 import net.minecraft.server.level.ServerPlayer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-import org.spongepowered.asm.mixin.injection.Coerce;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
@@ -19,18 +18,14 @@ public class NearbyEntityTrackingMixin {
     @Inject(
         method = "tick",
         at = @At(
-            value = "INVOKE_ASSIGN",
-            target = "Lcom/ishland/vmp/common/playerwatching/ServerPlayerEntityExtension;vmpTracking$isPositionUpdated()Z",
-            shift = At.Shift.AFTER
-        ),
-        remap = false
+            value = "INVOKE",
+            target = "Lcom/ishland/vmp/common/playerwatching/ServerPlayerEntityExtension;vmpTracking$updatePosition()V"
+        )
     )
-    @SuppressWarnings("resource")
     private void onPlayerTrackingTick(
-        @Coerce Object ticketManager,
         CallbackInfo ci,
-        @Local(name = "player") ServerPlayer player,
-        @Local(name = "isPlayerPositionUpdated") boolean positionUpdated
+        @Local ServerPlayer player,
+        @Local boolean positionUpdated
     ) {
         if (positionUpdated) {
             ServerLevel level = player.serverLevel();

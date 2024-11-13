@@ -8,6 +8,7 @@ import net.fabricmc.api.ModInitializer
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback
 import net.fabricmc.loader.api.FabricLoader
 import net.fabricmc.loader.api.ModContainer
+import net.minecraft.server.MinecraftServer
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -15,15 +16,18 @@ object ServerReplay: ModInitializer {
     const val MOD_ID = "server-replay"
 
     @JvmField
-    val logger: Logger = LoggerFactory.getLogger("ServerReplay")
+    val logger: Logger = LoggerFactory.getLogger(MOD_ID)
 
     val replay: ModContainer = FabricLoader.getInstance().getModContainer(MOD_ID).get()
-    val version: String = replay.metadata.version.friendlyString
+    val version: String = this.replay.metadata.version.friendlyString
 
     @JvmStatic
-    var config: ReplayConfig = ReplayConfig.read()
+    var config: ReplayConfig = ReplayConfig()
+        private set
 
     override fun onInitialize() {
+        this.config = ReplayConfig.read()
+
         ServerReplayPluginManager.loadPlugins()
 
         CommandRegistrationCallback.EVENT.register { dispatcher, _, _ ->
@@ -33,5 +37,14 @@ object ServerReplay: ModInitializer {
                 PackCommand.register(dispatcher)
             }
         }
+    }
+
+    fun getIp(server: MinecraftServer): String {
+        val ip = this.config.replayServerIp ?: "127.0.0.1"
+        return "${ip}:${server.port}"
+    }
+
+    fun reload() {
+        this.config = ReplayConfig.read()
     }
 }

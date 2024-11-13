@@ -2,6 +2,7 @@ package me.senseiwells.replay.recorder
 
 import com.google.common.hash.Hashing
 import com.mojang.authlib.GameProfile
+import com.replaymod.replaystudio.data.Marker
 import com.replaymod.replaystudio.io.ReplayOutputStream
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.packet.State
 import com.replaymod.replaystudio.lib.viaversion.api.protocol.version.ProtocolVersion
@@ -9,6 +10,7 @@ import com.replaymod.replaystudio.protocol.Packet
 import com.replaymod.replaystudio.protocol.PacketTypeRegistry
 import com.replaymod.replaystudio.replay.ReplayMetaData
 import io.netty.buffer.Unpooled
+import io.netty.handler.codec.EncoderException
 import it.unimi.dsi.fastutil.objects.Object2ObjectOpenHashMap
 import kotlinx.serialization.ExperimentalSerializationApi
 import kotlinx.serialization.json.Json
@@ -16,8 +18,10 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.encodeToStream
 import me.senseiwells.replay.ServerReplay
+import me.senseiwells.replay.api.network.RecordablePayload
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.mixin.network.IdDispatchCodecAccessor
 import me.senseiwells.replay.player.PlayerRecorder
 import me.senseiwells.replay.util.*
 import net.minecraft.ChatFormatting
@@ -35,6 +39,8 @@ import net.minecraft.server.MinecraftServer
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.EntityType
+import net.minecraft.world.phys.Vec2
+import net.minecraft.world.phys.Vec3
 import org.apache.commons.lang3.builder.StandardToStringStyle
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jetbrains.annotations.ApiStatus.Internal
@@ -66,7 +72,7 @@ import net.minecraft.network.protocol.Packet as MinecraftPacket
  */
 abstract class ReplayRecorder(
     val server: MinecraftServer,
-    protected val profile: GameProfile,
+    val profile: GameProfile,
     private val recordings: Path
 ) {
     private val packets by lazy { Object2ObjectOpenHashMap<String, DebugPacketData>() }
@@ -101,6 +107,12 @@ abstract class ReplayRecorder(
     private var ignore = false
 
     /**
+     * The number of markers that have been added to the recording.
+     */
+    var markers = 0
+        private set
+
+    /**
      * The directory at which all the temporary replay
      * files will be stored.
      * This also determines the final location of the replay file.
@@ -125,10 +137,20 @@ abstract class ReplayRecorder(
      */
     abstract val level: ServerLevel
 
+    /**
+     * The current position of the recorder.
+     */
+    abstract val position: Vec3
+
+    /**
+     * The current rotation of the recorder.
+     */
+    abstract val rotation: Vec2
+
     init {
         this.executor = Executors.newSingleThreadExecutor()
 
-        this.date = DateUtils.getFormattedDate()
+        this.date = DateTimeUtils.getFormattedDate()
         this.location = FileUtils.findNextAvailable(this.recordings.resolve(this.date))
         this.replay = SizedZipReplayFile(out = this.location.toFile())
 
@@ -172,37 +194,12 @@ abstract class ReplayRecorder(
             return
         }
 
-        val buf = FriendlyByteBuf(Unpooled.buffer())
-        val saved = try {
-            val id = this.protocol.getPacketId(PacketFlow.CLIENTBOUND, outgoing)
-            val state = this.protocolAsState()
-
-            outgoing.write(buf)
-
-            if (ServerReplay.config.debug) {
-                val type = outgoing.getDebugName()
-                this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(buf.readableBytes())
-            }
-
-            val wrapped = ReplayUnpooled.wrappedBuffer(buf.array(), buf.arrayOffset(), buf.readableBytes())
-
-            val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
-            val registry = PacketTypeRegistry.get(version, state)
-
-            Packet(registry, id, wrapped)
-        } finally {
-            buf.release()
-        }
-
+        val protocol = this.protocol
         val timestamp = this.getTimestamp()
         this.lastPacket = timestamp
 
         this.executor.execute {
-            try {
-                this.output.write(timestamp, saved)
-            } catch (e: IOException) {
-                ServerReplay.logger.error("Failed to write packet", e)
-            }
+            this.writePacket(outgoing, protocol, timestamp, !safe)
         }
 
         this.postPacket(outgoing)
@@ -260,6 +257,37 @@ abstract class ReplayRecorder(
         val future = this.close(save && this.protocol == ConnectionProtocol.PLAY)
         this.onClosing(future)
         return future
+    }
+
+    /**
+     * Adds a marker to the replay file which can be viewed in ReplayMod.
+     *
+     * @param name The name of the marker, null for unnamed.
+     * @param position The marked position.
+     * @param rotation The marked rotation.
+     * @param time The timestamp of the marker (milliseconds).
+     */
+    @JvmOverloads
+    fun addMarker(
+        name: String? = null,
+        position: Vec3 = this.position,
+        rotation: Vec2 = this.rotation,
+        time: Int = this.getTimestamp().toInt()
+    ) {
+        this.markers++
+        val marker = Marker()
+        marker.time = time
+        marker.name = name
+        marker.x = position.x
+        marker.y = position.y
+        marker.z = position.z
+        marker.pitch = rotation.x
+        marker.yaw = rotation.y
+        this.executor.execute {
+            val markers = this.replay.markers.or(::HashSet)
+            markers.add(marker)
+            this.replay.writeMarkers(markers)
+        }
     }
 
     /**
@@ -410,7 +438,7 @@ abstract class ReplayRecorder(
      */
     protected open fun addMetadata(map: MutableMap<String, JsonElement>) {
         map["name"] = JsonPrimitive(this.getName())
-        map["settings"] = ReplayConfig.toJson(ServerReplay.config.copy(replayViewerPackIp = "hidden"))
+        map["settings"] = ReplayConfig.toJson(ServerReplay.config.copy(replayServerIp = "hidden"))
         map["location"] = JsonPrimitive(this.location.pathString)
         map["time"] = JsonPrimitive(System.currentTimeMillis())
 
@@ -465,6 +493,12 @@ abstract class ReplayRecorder(
      * @return Whether this recorded should record it.
      */
     protected open fun canRecordPacket(packet: MinecraftPacket<*>): Boolean {
+        if (packet is ClientboundCustomPayloadPacket) {
+            val payload = packet.payload
+            if (payload is RecordablePayload && !payload.shouldRecord()) {
+                return false
+            }
+        }
         return true
     }
 
@@ -474,7 +508,7 @@ abstract class ReplayRecorder(
      *
      * @param block The function to call while ignoring packets.
      */
-    protected fun ignore(block: () -> Unit) {
+    fun ignore(block: () -> Unit) {
         val previous = this.ignore
         try {
             this.ignore = true
@@ -512,6 +546,73 @@ abstract class ReplayRecorder(
         this.record(ClientboundGameProfilePacket(this.profile))
 
         this.protocol = ConnectionProtocol.PLAY
+    }
+
+    private fun writePacket(
+        outgoing: MinecraftPacket<*>,
+        protocol: ProtocolInfo<*>,
+        timestamp: Long,
+        offThread: Boolean
+    ) {
+        val saved = try {
+            this.encodePacket(outgoing, protocol)
+        } catch (e: EncoderException) {
+            val name = outgoing.getDebugName()
+            if (!offThread) {
+                ServerReplay.logger.error("Failed to encode packet $name, skipping", e)
+                return
+            }
+            ServerReplay.logger.error(
+                "Failed to encode packet $name during ${protocol.id()} likely due to being off-thread, skipping", e
+            )
+            return
+        }
+        if (ServerReplay.config.debug) {
+            val type = outgoing.getDebugName()
+            this.packets.getOrPut(type) { DebugPacketData(type, 0, 0) }.increment(saved.buf.readableBytes())
+        }
+
+        try {
+            this.output.write(timestamp, saved)
+        } catch (e: IOException) {
+            ServerReplay.logger.error("Failed to write packet", e)
+        }
+    }
+
+    private fun encodePacket(outgoing: MinecraftPacket<*>, protocol: ProtocolInfo<*>): Packet {
+        val version = ProtocolVersion.getProtocol(SharedConstants.getProtocolVersion())
+        val registry = PacketTypeRegistry.get(version, this.protocolAsState(protocol))
+
+        @Suppress("UNCHECKED_CAST")
+        val codec = (protocol.codec() as StreamCodec<ByteBuf, MinecraftPacket<*>>)
+
+        if (outgoing is ClientboundCustomPayloadPacket) {
+            val payload = outgoing.payload
+            if (payload is RecordablePayload) {
+                @Suppress("UNCHECKED_CAST")
+                codec as IdDispatchCodecAccessor<PacketType<*>>
+
+                val id = codec.typeToIdMap.getInt(CommonPacketTypes.CLIENTBOUND_CUSTOM_PAYLOAD)
+                val friendly = FriendlyByteBuf(Unpooled.buffer())
+                try {
+                    friendly.writeResourceLocation(payload.type().id)
+                    payload.record(friendly)
+                    return Packet(registry, id, ReplayUnpooled.wrappedBuffer(friendly.toByteArray()))
+                } finally {
+                    friendly.release()
+                }
+            }
+        }
+
+        val buf = Unpooled.buffer()
+        try {
+            codec.encode(buf, outgoing)
+            val friendly = FriendlyByteBuf(buf.slice())
+            val id = friendly.readVarInt()
+            return Packet(registry, id, ReplayUnpooled.wrappedBuffer(friendly.toByteArray()))
+        } finally {
+            buf.release()
+        }
     }
 
     private fun prePacket(packet: MinecraftPacket<*>): Boolean {
@@ -724,8 +825,8 @@ abstract class ReplayRecorder(
         return this.location.parent.resolve(this.location.name + ".mcpr")
     }
 
-    private fun protocolAsState(): State {
-        return when (this.protocol) {
+    private fun protocolAsState(protocol: ConnectionProtocol): State {
+        return when (protocol) {
             ConnectionProtocol.PLAY -> State.PLAY
             ConnectionProtocol.LOGIN -> State.LOGIN
             else -> throw IllegalStateException("Expected connection protocol to be 'PLAY', 'CONFIGURATION' or 'LOGIN'")
@@ -744,7 +845,7 @@ abstract class ReplayRecorder(
     }
 
     private fun downloadAndRecordResourcePack(packet: ClientboundResourcePackPacket): Boolean {
-        if (packet.url.startsWith("replay://")) {
+        if (!ServerReplay.config.includeResourcePacks || packet.url.startsWith("replay://")) {
             return false
         }
         @Suppress("DEPRECATION")
@@ -832,7 +933,7 @@ abstract class ReplayRecorder(
             return if (this is ClientboundCustomPayloadPacket) {
                 "CustomPayload(${this.identifier})"
             } else {
-                this::class.java.simpleName
+                this.type().id.toString()
             }
         }
     }

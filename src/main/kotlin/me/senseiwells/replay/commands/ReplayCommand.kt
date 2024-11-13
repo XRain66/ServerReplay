@@ -1,5 +1,6 @@
 package me.senseiwells.replay.commands
 
+import com.google.common.collect.Iterables
 import com.mojang.brigadier.CommandDispatcher
 import com.mojang.brigadier.arguments.BoolArgumentType
 import com.mojang.brigadier.arguments.IntegerArgumentType
@@ -11,27 +12,28 @@ import me.senseiwells.replay.ServerReplay
 import me.senseiwells.replay.chunk.ChunkArea
 import me.senseiwells.replay.chunk.ChunkRecorder
 import me.senseiwells.replay.chunk.ChunkRecorders
-import me.senseiwells.replay.config.ReplayConfig
+import me.senseiwells.replay.http.DownloadReplaysHttpInjector
 import me.senseiwells.replay.player.PlayerRecorders
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.util.FileUtils.streamDirectoryEntriesOrEmpty
-import me.senseiwells.replay.viewer.ReplayViewer
+import me.senseiwells.replay.viewer.ReplayViewers
+import net.minecraft.ChatFormatting
 import net.minecraft.commands.CommandSourceStack
 import net.minecraft.commands.Commands
 import net.minecraft.commands.SharedSuggestionProvider
 import net.minecraft.commands.arguments.DimensionArgument
 import net.minecraft.commands.arguments.EntityArgument
-import net.minecraft.commands.arguments.UuidArgument
+import net.minecraft.network.chat.ClickEvent
 import net.minecraft.network.chat.Component
 import net.minecraft.server.level.ServerLevel
 import net.minecraft.world.level.ChunkPos
-import java.util.*
+import java.net.URLEncoder
+import java.nio.charset.StandardCharsets
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.TimeUnit
 import kotlin.io.path.*
 
 object ReplayCommand {
-    @JvmStatic
     fun register(dispatcher: CommandDispatcher<CommandSourceStack>) {
         dispatcher.register(
             Commands.literal("replay").requires {
@@ -92,10 +94,6 @@ object ReplayCommand {
                         Commands.argument("players", EntityArgument.players()).then(
                             Commands.argument("save", BoolArgumentType.bool()).executes(this::onStopPlayers)
                         ).executes { this.onStopPlayers(it, true) }
-                    ).then(
-                        Commands.literal("all").then(
-                            Commands.argument("save", BoolArgumentType.bool()).executes { this.onStopAll(it, PlayerRecorders.recorders()) }
-                        ).executes { this.onStopAll(it, PlayerRecorders.recorders(), true) }
                     )
                 ).then(
                     Commands.literal("chunks").then(
@@ -127,6 +125,10 @@ object ReplayCommand {
                             Commands.argument("save", BoolArgumentType.bool()).executes { this.onStopAll(it, ChunkRecorders.recorders()) }
                         ).executes { this.onStopAll(it, ChunkRecorders.recorders(), true) }
                     )
+                ).then(
+                    Commands.literal("all").then(
+                        Commands.argument("save", BoolArgumentType.bool()).executes { this.onStopAll(it, Iterables.concat(ChunkRecorders.recorders(), PlayerRecorders.recorders())) }
+                    ).executes { this.onStopAll(it, Iterables.concat(ChunkRecorders.recorders(), PlayerRecorders.recorders()), true) }
                 )
             ).then(
                 Commands.literal("reload").executes(this::onReload)
@@ -135,7 +137,7 @@ object ReplayCommand {
             ).then(
                 Commands.literal("view").then(
                     Commands.literal("players").then(
-                        Commands.argument("uuid", UuidArgument.uuid()).suggests(this.suggestSavedPlayerUUID()).then(
+                        Commands.argument("name", StringArgumentType.string()).suggests(this.suggestSavedPlayerName()).then(
                             Commands.argument("replay", StringArgumentType.string()).suggests(this.suggestSavedPlayerReplayName()).executes {
                                 this.viewReplay(it, true)
                             }
@@ -147,6 +149,42 @@ object ReplayCommand {
                             Commands.argument("replay", StringArgumentType.string()).suggests(this.suggestSavedChunkReplayName()).executes {
                                 this.viewReplay(it, false)
                             }
+                        )
+                    )
+                )
+            ).then(
+                Commands.literal("download").then(
+                    Commands.literal("players").then(
+                        Commands.argument("name", StringArgumentType.string()).suggests(this.suggestSavedPlayerName()).then(
+                            Commands.argument("replay", StringArgumentType.string()).suggests(this.suggestSavedPlayerReplayName()).executes {
+                                this.downloadReplay(it, true)
+                            }
+                        )
+                    )
+                ).then(
+                    Commands.literal("chunks").then(
+                        Commands.argument("area", StringArgumentType.string()).suggests(this.suggestSavedChunkArea()).then(
+                            Commands.argument("replay", StringArgumentType.string()).suggests(this.suggestSavedChunkReplayName()).executes {
+                                this.downloadReplay(it, false)
+                            }
+                        )
+                    )
+                )
+            ).then(
+                Commands.literal("marker").then(
+                    Commands.literal("add").then(
+                        Commands.literal("players").then(
+                            Commands.argument("players", EntityArgument.players()).then(
+                                Commands.argument("marker", StringArgumentType.string()).executes(this::addPlayerMarker)
+                            ).executes { this.addPlayerMarker(it, null) }
+                        )
+                    ).then(
+                        Commands.literal("chunks").then(
+                            Commands.literal("named").then(
+                                Commands.argument("name", StringArgumentType.string()).suggests(this.suggestExistingName()).then(
+                                    Commands.argument("marker", StringArgumentType.string()).executes(this::addChunkMarker)
+                                ).executes { this.addChunkMarker(it, null) }
+                            )
                         )
                     )
                 )
@@ -192,7 +230,11 @@ object ReplayCommand {
                 i++
             }
         }
-        context.source.sendSuccess({ Component.literal("Successfully started $i recordings") }, true)
+        if (i > 0) {
+            context.source.sendSuccess({ Component.literal("Successfully started $i recordings") }, true)
+        } else {
+            context.source.sendFailure(Component.literal("Failed to start any recordings"))
+        }
         return i
     }
 
@@ -252,7 +294,11 @@ object ReplayCommand {
                 i++
             }
         }
-        context.source.sendSuccess({ Component.literal("Successfully stopped $i recordings") }, true)
+        if (i > 0) {
+            context.source.sendSuccess({ Component.literal("Successfully stopped $i recordings") }, true)
+        } else {
+            context.source.sendFailure(Component.literal("Failed to stop any recordings"))
+        }
         return i
     }
 
@@ -294,7 +340,7 @@ object ReplayCommand {
 
     private fun onStopAll(
         context: CommandContext<CommandSourceStack>,
-        recorders: Collection<ReplayRecorder>,
+        recorders: Iterable<ReplayRecorder>,
         save: Boolean = BoolArgumentType.getBool(context, "save"),
     ): Int {
         for (recorder in recorders) {
@@ -305,7 +351,7 @@ object ReplayCommand {
     }
 
     private fun onReload(context: CommandContext<CommandSourceStack>): Int {
-        ServerReplay.config = ReplayConfig.read()
+        ServerReplay.reload()
         context.source.sendSuccess({ Component.literal("Successfully reloaded config.") }, true)
         return 1
     }
@@ -360,8 +406,8 @@ object ReplayCommand {
     ): Int {
         val player = context.source.playerOrException
         val path = if (isPlayer) {
-            val uuid = UuidArgument.getUuid(context, "uuid")
-            ServerReplay.config.playerRecordingPath.resolve(uuid.toString())
+            val name = StringArgumentType.getString(context, "name")
+            ServerReplay.config.playerRecordingPath.resolve(name)
         } else {
             val area = StringArgumentType.getString(context, "area")
             ServerReplay.config.chunkRecordingPath.resolve(area)
@@ -371,13 +417,76 @@ object ReplayCommand {
         val replayPath = path.resolve("${replayName}.mcpr")
 
         if (replayPath.exists()) {
-            val viewer = ReplayViewer(replayPath, player.connection)
-            viewer.start()
+            ReplayViewers.start(replayPath, player)
             return 1
         }
 
         context.source.sendFailure(Component.literal("Failed to view replay, file $replayName doesn't exist!"))
         return 0
+    }
+
+    private fun downloadReplay(
+        context: CommandContext<CommandSourceStack>,
+        isPlayer: Boolean
+    ): Int {
+        if (!ServerReplay.config.allowDownloadingReplays) {
+            context.source.sendFailure(
+                Component.literal("Downloading replays is disabled, you must enable it in the config")
+            )
+            return 0
+        }
+
+        val root = if (isPlayer) {
+            val name = StringArgumentType.getString(context, "name")
+            "player/${URLEncoder.encode(name, StandardCharsets.UTF_8)}"
+        } else {
+            val area = StringArgumentType.getString(context, "area")
+            "chunk/${URLEncoder.encode(area, StandardCharsets.UTF_8)}"
+        }
+
+        val name = StringArgumentType.getString(context, "replay")
+        val path = "$root/${URLEncoder.encode(name, StandardCharsets.UTF_8)}.mcpr"
+
+        val url = DownloadReplaysHttpInjector.createUrl(context.source.server, path)
+        val here = Component.literal("[here]")
+            .withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD)
+            .withStyle { it.withClickEvent(ClickEvent(ClickEvent.Action.OPEN_URL, url)) }
+        val message = Component.literal("You can download the replay ").append(here)
+        context.source.sendSystemMessage(message)
+        return 1
+    }
+
+    private fun addPlayerMarker(
+        context: CommandContext<CommandSourceStack>,
+        name: String? = StringArgumentType.getString(context, "marker")
+    ): Int {
+        val players = EntityArgument.getPlayers(context, "players")
+        val recorders = players.mapNotNull(PlayerRecorders::get)
+        return this.addMarker(context, name, recorders)
+    }
+
+    private fun addChunkMarker(
+        context: CommandContext<CommandSourceStack>,
+        name: String? = StringArgumentType.getString(context, "marker")
+    ): Int {
+        val area = StringArgumentType.getString(context, "name")
+        return this.addMarker(context, name, listOfNotNull(ChunkRecorders.get(area)))
+    }
+
+    private fun addMarker(
+        context: CommandContext<CommandSourceStack>,
+        name: String?,
+        recorders: Collection<ReplayRecorder>
+    ): Int {
+        for (recorder in recorders) {
+            recorder.addMarker(name)
+        }
+        if (recorders.isNotEmpty()) {
+            context.source.sendSuccess({ Component.literal("Successfully marked ${recorders.size} recordings") }, true)
+        } else {
+            context.source.sendFailure(Component.literal("Failed to mark any recordings"))
+        }
+        return 1
     }
 
     private fun getStatusFuture(
@@ -448,19 +557,19 @@ object ReplayCommand {
         }
     }
 
-    private fun suggestSavedPlayerUUID(): SuggestionProvider<CommandSourceStack> {
+    private fun suggestSavedPlayerName(): SuggestionProvider<CommandSourceStack> {
         return SuggestionProvider<CommandSourceStack> { _, b ->
             val names = ServerReplay.config.playerRecordingPath.streamDirectoryEntriesOrEmpty()
-                .filter { it.isDirectory() && kotlin.runCatching { UUID.fromString(it.name) }.isSuccess }
-                .map { it.name }
+                .filter { it.isDirectory() }
+                .map { "\"${it.name}\"" }
             SharedSuggestionProvider.suggest(names, b)
         }
     }
 
     private fun suggestSavedPlayerReplayName(): SuggestionProvider<CommandSourceStack> {
         return SuggestionProvider<CommandSourceStack> { c, b ->
-            val uuid = UuidArgument.getUuid(c, "uuid")
-            val playerPath = ServerReplay.config.playerRecordingPath.resolve(uuid.toString())
+            val name = StringArgumentType.getString(c, "name")
+            val playerPath = ServerReplay.config.playerRecordingPath.resolve(name)
             val names = playerPath.streamDirectoryEntriesOrEmpty()
                 .filter { !it.isDirectory() && it.extension == "mcpr" }
                 .map { "\"${it.nameWithoutExtension}\"" }

@@ -152,8 +152,22 @@ You will only have access to a limited set of commands when viewing replays, the
 - `/replay view speed <multiplier>` Sets the playback speed of the current replay.
 - `/replay view restart` Restarts the playback of the current replay.
 - `/replay view close` Closes the current replay and brings you back to the server.
+- `/replay view progress <hide|show>` Hides or shows the progress bossbar.
 
 If you disconnect while watching a replay, you will be brought back to the server when you login.
+
+#### Downloading
+
+You can download any replay from the server if `"allow_downloading_replays"` is enabled in the config
+and the server-ip and downloading port is set up correctly.
+
+You can use the `/replay download` command to retrieve the URL to download the specified replay, for example:
+```
+/replay download players d4fca8c4-e083-4300-9a73-bf438847861c "2024-05-11--19-19-55"
+/replay download chunks "Chunks (183, 166) to (203, 186)" "2024-05-11--19-19-55"
+```
+
+This will send you a chat message; you can click on the link provided which will download the file.
 
 ### Commands
 
@@ -196,6 +210,7 @@ After you boot the server a new file will be generated in the path
   "server_name": "Server",
   "chunk_recording_path": "./recordings/chunks",
   "player_recording_path": "./recordings/players",
+  "player_recording_name": "{uuid}",
   "max_file_size": "0GB",
   "restart_after_max_file_size": false,
   "max_duration": "0s",
@@ -208,6 +223,7 @@ After you boot the server a new file will be generated in the path
   "pause_notify_players": true,
   "notify_admins_of_status": true,
   "fix_carpet_bot_view_distance": false,
+  "include_resource_packs": true,
   "ignore_sound_packets": false,
   "ignore_light_packets": true,
   "ignore_chat_packets": false,
@@ -215,8 +231,10 @@ After you boot the server a new file will be generated in the path
   "optimize_explosion_packets": true,
   "optimize_entity_packets": false,
   "record_voice_chat": false,
-  "replay_viewer_pack_ip": null,
+  "replay_server_ip": null,
   "replay_viewer_pack_port": 24464,
+  "replay_download_port": 25585,
+  "allow_downloading_replays": false,
   "player_predicate": {
     "type": "none"
   },
@@ -231,6 +249,7 @@ After you boot the server a new file will be generated in the path
 | `"server_name"`                  | <p> The name of the server that will appear on the replay file. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                |
 | `"player_recording_path"`        | <p> The path where you want player recordings to be saved. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | `"chunk_recording_path"`         | <p> The path where you want chunk recordings to be saved. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `"player_recording_name"`        | <p> This determines the name of each specific player's recording directory. By default is set to `"{uuid}"` which uses the player's uuid. You can also insert the player's name with `"{username}"`. You could for example have: `"Recordings for: {username} ({uuid})"`. </p>                                                                                                                                                                                                                                                                                                                      |
 | `"max_file_size"`                | <p> The maximum replay file size you want to allow to record, this is any number followed by a unit, e.g. `5.2mb`. </p> <p> If this limit is reached then the replay recorder will stop. This is only approximate, expect the real file size to be slightly larger. Set this to `0` to not have a limit. </p> <p> Be warned that this may impact server performance if your max file size is large, in order to check whether a file is too big (`>5GB`) it must be compressed which can be very expensive. You may check the time until the next file size check by running `/replay status`. </p> |
 | `"restart_after_max_file_size"`  | <p> If the `max_file_size` is set and this limit is reached then the replay recording will automatically restart creating a new replay file. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | `"max_duration"`                 | <p> Sets the maximum duration for a replay, once the replay has recorded for the specified amount of time it will stop, this is any number followed by units (you may also have multiple units), e.g. `4h 35m 2.1s`. Set this to `0` to not have a max duration limit. Note: if a recorder is paused it's duration does not increase. </p>                                                                                                                                                                                                                                                          |
@@ -243,14 +262,17 @@ After you boot the server a new file will be generated in the path
 | `"pause_notify_players"`         | <p> If `pause_unloaded_chunks` is enabled and this is enabled then when the recording for the chunk area is paused or resumed all online players will be notified. </p>                                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `"notify_admins_of_status"`      | <p> When enabled this will notify admins of when a replay starts, when a replay ends, and when a replay has finished saving, as well as any errors that occur. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `"fix_carpet_bot_view_distance"` | <p> If you are recording carpet bots you want to enable this as it sets the view distance to the server view distance. Otherwise it will only record a distance of 2 chunks around the bot. </p>                                                                                                                                                                                                                                                                                                                                                                                                    |
+| `"include_resource_packs"`       | <p> If enabled all server-side resource packs will be copied in the replay file to ensure correct playback. Disabling this will decrease file size but instead it'll try to download the pack from the original source whenever viewing the replay, there is no guarantee that this will work correctly. </p>                                                                                                                                                                                                                                                                                       |
 | `"ignore_sound_packets"`         | <p> If you are recording a large area for a timelapse it's unlikely you'll want to record any sounds, these can eat up significant storage space. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                              |
 | `"ignore_light_packets"`         | <p> Light is calculated on the client as well as on the server so light packets are mostly redundant. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          |
 | `"ignore_chat_packets"`          | <p> Stops chat packets (from both the server and other players) from being recorded if they are not necessary for your replay. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                 |
 | `"ignore_scoreboard_packets"`    | <p> Stops scoreboard packets from being recorded (for example, if you have a scoreboard displaying digs then this will not appear, and player's scores will also not be recorded). </p>                                                                                                                                                                                                                                                                                                                                                                                                             |
 | `"optimize_explosion_packets"`   | <p> This reduces the file size greatly by not sending the client explosion packets instead just sending the explosion particles and sounds. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | `"optimize_entity_packets"`      | <p> This reduces the file size by letting the client handle the logic for some entities, e.g. projectiles and tnt. This may cause some inconsistencies however it will likely be negligible. </p>                                                                                                                                                                                                                                                                                                                                                                                                   |
-| `"replay_viewer_pack_ip"`        | <p> This is required if your server uses custom server-side resource packs and you want to be able to view these packs in the server-side replay viewer. </p> <p> This should contain the public ip address of your server. This also requires `"replay_viewer_pack_port"`. </p>                                                                                                                                                                                                                                                                                                                    |
-| `"replay_viewer_pack_port"`      | <p> This requires `"replay_viewer_pack_ip"`. This is the port you wish to host your server-side resource packs on, you must ensure that the port is open. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                      |
+| `"replay_server_ip"`             | <p> This is required if your server uses custom server-side resource packs and you want to be able to view these packs in the server-side replay viewer. This is also required if you want to allow users to download replays. </p> <p> This should contain the public ip address of your server. This also requires `"replay_viewer_pack_port"` or `"replay_download_port"`. </p>                                                                                                                                                                                                                  |
+| `"replay_viewer_pack_port"`      | <p> This requires `"replay_server_ip"`. This is the port you wish to host your server-side resource packs on, you must ensure that the port is open. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                           |
+| `"replay_download_port"`         | <p> This requires `"replay_server_ip"`. This is the port you wish to host recorded your `mcpr` replays on, you must ensure that the port is open. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                              |
+| `"allow_downloading_replays"`    | <p> Determines whether users will be able to download recorded replays. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
 | `"record_voice_chat"`            | <p> This enables support for recording voice-chat if you have the [simple-voice-chat](https://github.com/henkelmax/simple-voice-chat) mod installed, when watching back the replay you must have [replay-voice-chat](https://github.com/henkelmax/replay-voice-chat) installed. </p>                                                                                                                                                                                                                                                                                                                |
 | `"player_predicate"`             | <p> The predicate for recording players automatically, more information in the [Predicates](#predicates-config) section. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                                       |
 | `"chunks"`                       | <p> The list of chunks to automatically record when the server starts, more information in the [Chunks](#chunks-config) section. </p>                                                                                                                                                                                                                                                                                                                                                                                                                                                               |
@@ -426,14 +448,11 @@ following to your `build.gradle.kts`
 
 ```kts
 repositories {
-    maven("https://jitpack.io")
-    // For voicechat mod compatability
-    maven("https://maven.maxhenkel.de/repository/public")
+    maven("https://maven.supersanta.me/snapshots")
 }
 
 dependencies {
-    // For the most recent version, use the latest commit hash
-    modImplementation("com.github.senseiwells:ServerReplay:da3b0e55ce")
+    modImplementation("me.senseiwells:server-replay:1.2.2+1.20.6")
 }
 ```
 

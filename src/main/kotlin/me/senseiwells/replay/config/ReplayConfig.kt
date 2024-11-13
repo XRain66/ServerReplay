@@ -1,5 +1,6 @@
 package me.senseiwells.replay.config
 
+import com.mojang.authlib.GameProfile
 import kotlinx.serialization.EncodeDefault
 import kotlinx.serialization.EncodeDefault.Mode
 import kotlinx.serialization.ExperimentalSerializationApi
@@ -45,6 +46,8 @@ data class ReplayConfig(
     @SerialName("player_recording_path")
     @Serializable(with = PathSerializer::class)
     var playerRecordingPath: Path = recordings.resolve("players"),
+    @SerialName("player_recording_name")
+    var playerRecordingName: String = "{uuid}",
     @SerialName("max_file_size")
     var maxFileSize: FileSize = FileSize("0GB"),
     @SerialName("restart_after_max_file_size")
@@ -70,6 +73,8 @@ data class ReplayConfig(
     var notifyAdminsOfStatus: Boolean = true,
     @SerialName("fix_carpet_bot_view_distance")
     var fixCarpetBotViewDistance: Boolean = false,
+    @SerialName("include_resource_packs")
+    var includeResourcePacks: Boolean = true,
     @SerialName("ignore_sound_packets")
     var ignoreSoundPackets: Boolean = false,
     @SerialName("ignore_light_packets")
@@ -84,15 +89,23 @@ data class ReplayConfig(
     var optimizeEntityPackets: Boolean = false,
     @SerialName("record_voice_chat")
     var recordVoiceChat: Boolean = false,
-    @SerialName("replay_viewer_pack_ip")
-    var replayViewerPackIp: String? = null,
-    @SerialName("replay_viewer_pack_port")
-    var replayViewerPackPort: Int = 24464,
+    @JsonNames("replay_viewer_pack_ip")
+    @SerialName("replay_server_ip")
+    var replayServerIp: String? = null,
+    @SerialName("allow_downloading_replays")
+    var allowDownloadingReplays: Boolean = false,
     @SerialName("player_predicate")
     private var playerPredicate: ReplayPlayerPredicate = NonePredicate,
     @SerialName("chunks")
     private val chunks: List<ChunkAreaConfig> = listOf(),
 ) {
+    fun getPlayerRecordingLocation(profile: GameProfile): Path {
+        val path = this.playerRecordingName
+            .replace("{uuid}", profile.id.toString())
+            .replace("{username}", profile.name)
+        return this.playerRecordingPath.resolve(path)
+    }
+
     fun shouldRecordPlayer(context: ReplayPlayerContext): Boolean {
         return this.playerPredicate.shouldRecord(context)
     }
@@ -130,6 +143,7 @@ data class ReplayConfig(
             encodeDefaults = true
             prettyPrint = true
             prettyPrintIndent = "  "
+            ignoreUnknownKeys = true
         }
 
         fun read(): ReplayConfig {

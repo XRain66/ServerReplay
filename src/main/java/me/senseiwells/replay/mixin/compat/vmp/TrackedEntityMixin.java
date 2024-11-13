@@ -15,29 +15,29 @@ import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(value = ChunkMap.TrackedEntity.class, priority = 1100)
 public class TrackedEntityMixin {
-	@Shadow
-	@Final
-	Entity entity;
+    @Shadow
+    @Final
+    Entity entity;
 
-	@Dynamic(mixin = MixinThreadedAnvilChunkStorageEntityTracker.class)
-	@ModifyExpressionValue(
-		method = "tryTick",
-		at = @At(
-			value = "INVOKE",
-			target = "Ljava/util/Set;isEmpty()Z"
-		),
-		remap = false
-	)
-	private boolean shouldNotTick(boolean original) {
-		if (!original) {
-			return false;
-		}
-		if (!((ChunkRecordable) this).getRecorders().isEmpty()) {
-			return false;
-		}
-		if (this.entity instanceof ServerPlayer player) {
-			return !PlayerRecorders.has(player);
-		}
-		return true;
-	}
+    @Dynamic(mixin = MixinThreadedAnvilChunkStorageEntityTracker.class)
+    @ModifyExpressionValue(
+        method = "tryTick",
+        at = @At(
+            value = "INVOKE",
+            target = "Ljava/util/Set;isEmpty()Z"
+        ),
+        remap = false
+    )
+    private boolean shouldNotTick(boolean original) {
+        if (!original) {
+            return false;
+        }
+        if (!((ChunkRecordable) this).getRecorders().isEmpty()) {
+            return false;
+        }
+        if (this.entity instanceof ServerPlayer player) {
+            return !PlayerRecorders.has(player);
+        }
+        return true;
+    }
 }

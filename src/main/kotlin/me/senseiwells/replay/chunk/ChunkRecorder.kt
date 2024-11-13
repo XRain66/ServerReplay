@@ -6,6 +6,7 @@ import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonPrimitive
 import com.mojang.authlib.GameProfile
 import me.senseiwells.replay.ServerReplay
+import me.senseiwells.replay.api.ServerReplayPluginManager
 import me.senseiwells.replay.mixin.chunk.WitherBossAccessor
 import me.senseiwells.replay.mixin.rejoin.ChunkMapAccessor
 import me.senseiwells.replay.player.PlayerRecorder
@@ -26,6 +27,8 @@ import net.minecraft.world.entity.boss.wither.WitherBoss
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.levelgen.Heightmap
+import net.minecraft.world.phys.Vec2
+import net.minecraft.world.phys.Vec3
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
@@ -50,9 +53,12 @@ class ChunkRecorder internal constructor(
     recordings: Path
 ): ReplayRecorder(chunks.level.server, PROFILE, recordings), ChunkSender {
     private val dummy by lazy {
-        ServerPlayer(this.server, this.chunks.level, PROFILE)
+        val player = ServerPlayer(this.server, this.chunks.level, PROFILE)
+        ChunkGamePacketPacketListener(this, player)
+        player
     }
 
+    private val loadedChunks = LongOpenHashSet()
     private val sentChunks = LongOpenHashSet()
 
     private val recordables = HashSet<ChunkRecordable>()
@@ -60,13 +66,23 @@ class ChunkRecorder internal constructor(
     private var totalPausedTime: Long = 0
     private var lastPaused: Long = 0
 
-    private var loadedChunks = 0
-
     /**
      * The level that the chunk recording is currently in.
      */
     override val level: ServerLevel
         get() = this.chunks.level
+
+    /**
+     * The current position of the recorder.
+     */
+    override val position: Vec3
+        get() = this.dummy.position()
+
+    /**
+     * The current rotation of the recorder.
+     */
+    override val rotation: Vec2
+        get() = Vec2.ZERO
 
     /**
      * This gets the name of the replay recording.
@@ -98,6 +114,7 @@ class ChunkRecorder internal constructor(
         RejoinedReplayPlayer.rejoin(this.dummy, this)
         this.spawnPlayer()
         this.sendChunksAndEntities()
+        ServerReplayPluginManager.startReplay(this)
 
         val chunks = this.level.chunkSource.chunkMap as ChunkMapAccessor
         for (pos in this.chunks) {
@@ -285,9 +302,6 @@ class ChunkRecorder internal constructor(
      * **This is *not* a real player, and many operations on this instance
      * may cause crashes, be very careful with how you use this.**
      *
-     * This player has no [ServerPlayer.connection] and thus **cannot** be
-     * sent packets, any attempts will result in a [NullPointerException].
-     *
      * @return The dummy chunk recording player.
      */
     fun getDummyPlayer(): ServerPlayer {
@@ -321,35 +335,30 @@ class ChunkRecorder internal constructor(
     }
 
     @Internal
-    fun onChunkLoaded(chunk: LevelChunk): Boolean {
+    fun onChunkLoaded(chunk: LevelChunk) {
         if (!this.chunks.contains(chunk.level.dimension(), chunk.pos)) {
             ServerReplay.logger.error("Tried to load chunk out of bounds!")
-            return false
+            return
         }
 
-        this.loadedChunks++
         this.resume()
+        this.loadedChunks.add(chunk.pos.toLong())
 
         if (!this.sentChunks.contains(chunk.pos.toLong())) {
             this.sendChunk(this.level.chunkSource.chunkMap, chunk, IntArraySet())
         }
-
-        return true
     }
 
     @Internal
-    fun onChunkUnloaded(chunk: LevelChunk) {
-        if (!this.chunks.contains(chunk.level.dimension(), chunk.pos)) {
+    fun onChunkUnloaded(pos: ChunkPos) {
+        if (!this.chunks.contains(this.level.dimension(), pos)) {
             ServerReplay.logger.error("Tried to unload chunk out of bounds!")
             return
         }
 
-        this.loadedChunks -= 1
-        if (this.loadedChunks < 0) {
-            ServerReplay.logger.error("Unloaded more chunks than was possible?")
-            this.loadedChunks = 0
-        }
-        if (this.loadedChunks == 0) {
+        this.loadedChunks.remove(pos.toLong())
+
+        if (this.loadedChunks.isEmpty()) {
             this.pause()
         }
     }

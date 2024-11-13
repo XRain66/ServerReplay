@@ -1,6 +1,7 @@
 package me.senseiwells.replay.player
 
 import com.mojang.authlib.GameProfile
+import me.senseiwells.replay.api.ServerReplayPluginManager
 import me.senseiwells.replay.recorder.ChunkSender
 import me.senseiwells.replay.recorder.ReplayRecorder
 import me.senseiwells.replay.rejoin.RejoinedReplayPlayer
@@ -15,6 +16,8 @@ import net.minecraft.server.level.ServerLevel
 import net.minecraft.server.level.ServerPlayer
 import net.minecraft.world.entity.Entity
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.phys.Vec2
+import net.minecraft.world.phys.Vec3
 import org.jetbrains.annotations.ApiStatus.Internal
 import java.nio.file.Path
 import java.util.concurrent.CompletableFuture
@@ -44,7 +47,19 @@ class PlayerRecorder internal constructor(
      * The level that the player is currently in.
      */
     override val level: ServerLevel
-        get() = this.getPlayerOrThrow().serverLevel()
+        get() = this.player?.serverLevel() ?: this.server.overworld()
+
+    /**
+     * The current position of the player.
+     */
+    override val position: Vec3
+        get() = this.getPlayerOrThrow().position()
+
+    /**
+     * The current rotation of the player.
+     */
+    override val rotation: Vec2
+        get() = this.getPlayerOrThrow().rotationVector
 
     /**
      * Gets the player that's being recorded.
@@ -81,6 +96,7 @@ class PlayerRecorder internal constructor(
         val player = this.player ?: return false
         RejoinedReplayPlayer.rejoin(player, this)
         this.sendChunksAndEntities()
+        ServerReplayPluginManager.startReplay(this)
         return true
     }
 
@@ -179,9 +195,7 @@ class PlayerRecorder internal constructor(
     @Internal
     fun spawnPlayer(player: ServerEntity) {
         val list = ArrayList<Packet<ClientGamePacketListener>>()
-        // The player parameter is never used, we can just pass in null
-        @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-        player.sendPairingData(null, list::add)
+        player.sendPairingData(this.getPlayerOrThrow(), list::add)
         this.record(ClientboundBundlePacket(list))
     }
 
