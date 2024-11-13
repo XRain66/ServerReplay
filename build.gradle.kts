@@ -47,7 +47,6 @@ dependencies {
 
     include(implementation(libs.inject.api.get())!!)
     include(implementation(libs.inject.http.get())!!)
-    include(modImplementation(libs.inject.fabric.get())!!)
 
     modCompileOnly(libs.carpet)
     modCompileOnly(libs.vmp)

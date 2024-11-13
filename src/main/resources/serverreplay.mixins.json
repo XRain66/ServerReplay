@@ -23,6 +23,7 @@
     "compat.syncmatica.SyncmaticaPacketPayloadMixin",
     "compat.vmp.NearbyEntityTrackingMixin",
     "compat.vmp.TrackedEntityMixin",
+    "network.ConnectionMixin",
     "network.IdDispatchCodecAccessor",
     "player.ServerCommonPacketListenerImplMixin",
     "player.ServerConfigurationPacketListenerImplMixin",

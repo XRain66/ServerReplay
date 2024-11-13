@@ -28,7 +28,6 @@ permissions      = { module = "me.lucko:fabric-permissions-api"    , version.ref
 replay-studio    = { module = "com.github.ReplayMod:ReplayStudio"  , version.ref = "replay-studio" }
 inject-api       = { module = "net.mcbrawls.inject:api"            , version.ref = "inject" }
 inject-http      = { module = "net.mcbrawls.inject:http"           , version.ref = "inject" }
-inject-fabric    = { module = "net.mcbrawls.inject:fabric"         , version.ref = "inject" }
 
 # Compatability depdendencies
 carpet           = { module = "com.github.gnembon:fabric-carpet"                  , version.ref = "carpet" }
