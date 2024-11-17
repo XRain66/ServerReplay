@@ -81,6 +81,8 @@ data class ReplayConfig(
     var ignoreLightPackets: Boolean = true,
     @SerialName("ignore_chat_packets")
     var ignoreChatPackets: Boolean = false,
+    @SerialName("ignore_action_bar_packets")
+    var ignoreActionBarPackets: Boolean = false,
     @SerialName("ignore_scoreboard_packets")
     var ignoreScoreboardPackets: Boolean = false,
     @SerialName("optimize_explosion_packets")
