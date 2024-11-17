@@ -16,7 +16,6 @@ plugins {
 val shade: Configuration by configurations.creating
 
 repositories {
-    mavenLocal()
     maven("https://maven.parchmentmc.org/")
     maven("https://masa.dy.fi/maven")
     maven("https://jitpack.io")
@@ -55,7 +54,7 @@ dependencies {
     modCompileOnly(explosion.fabric(libs.c2me))
     modCompileOnly(libs.servux)
     modCompileOnly(libs.syncmatica)
-    modImplementation(libs.voicechat)
+    modCompileOnly(libs.voicechat)
     implementation(libs.voicechat.api)
 
     shade(modImplementation(libs.replay.studio.get())!!)
@@ -120,7 +119,7 @@ tasks {
         file = remapJar.get().archiveFile
         changelog.set(
             """
-            - Fix a crash
+            - Added `"ignore_action_bar_packets"` option
             """.trimIndent()
         )
         type = STABLE
