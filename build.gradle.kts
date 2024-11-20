@@ -28,7 +28,7 @@ repositories {
 }
 
 
-val modVersion = "1.2.3"
+val modVersion = "1.2.4"
 val releaseVersion = "${modVersion}+mc${libs.versions.minecraft.get()}"
 version = releaseVersion
 group = "me.senseiwells"
