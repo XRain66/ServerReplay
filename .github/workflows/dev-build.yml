@@ -1,7 +1,6 @@
 name: Dev Build
 on:
-  push:
-    branches: [ '*' ]
+  workflow_dispatch:
 jobs:
   build:
     name: Build
