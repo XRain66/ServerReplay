@@ -171,7 +171,7 @@ abstract class ReplayRecorder(
      */
     fun record(outgoing: MinecraftPacket<*>) {
         if (!this.started) {
-            throw IllegalStateException("Cannot record packets if recorder not started")
+        //    throw IllegalStateException("Cannot record packets if recorder not started")
         }
         if (this.ignore || this.stopped) {
             return
